@@ -7,20 +7,20 @@ import android.os.Handler;
 import android.os.Message;
 
 /**
- * ������Ϸ�߼�
+ * 处理游戏逻辑
  */
 public class Game {
 	public static final int SCALE_SMALL = 11;
 	public static final int SCALE_MEDIUM = 15;
 	public static final int SCALE_LARGE = 19;
-	// �Լ�
+	// 自己
 	Player me;
-	// ����
+	// 对手
 	Player challenger;
 
 	private int mMode = 0;
 
-	// Ĭ�Ϻ����ȳ�
+	// 默认黑子先出
 	private int mActive = 1;
 	int mGameWidth = 0;
 	int mGameHeight = 0;
@@ -55,9 +55,9 @@ public class Game {
 	}
 
 	/**
-	 * ����һ��
-	 * 
-	 * @return �Ƿ���Ի���
+	 * 悔棋一子
+	 *
+	 * @return 是否可以悔棋
 	 */
 	public boolean rollback() {
 		Coordinate c = mActions.pollLast();
@@ -70,31 +70,31 @@ public class Game {
 	}
 
 	/**
-	 * ��Ϸ���
-	 * 
-	 * @return ���̵�����
+	 * 游戏宽度
+	 *
+	 * @return 棋盘的列数
 	 */
 	public int getWidth() {
 		return mGameWidth;
 	}
 
 	/**
-	 * ��Ϸ�߶�
-	 * 
-	 * @return ���̺���
+	 * 游戏高度
+	 *
+	 * @return 棋盘横数
 	 */
 	public int getHeight() {
 		return mGameHeight;
 	}
 
 	/**
-	 * ����
-	 * 
+	 * 落子
+	 *
 	 * @param x
-	 *            �����±�
+	 *            横向下标
 	 * @param y
-	 *            �����±�
-	 * @return ��ǰλ���Ƿ��������
+	 *            纵向下标
+	 * @return 当前位置是否可以下子
 	 */
 	public boolean addChess(int x, int y) {
 		if (mMode == GameConstants.MODE_FIGHT) {
@@ -136,14 +136,14 @@ public class Game {
 	}
 
 	/**
-	 * ����
-	 * 
+	 * 落子
+	 *
 	 * @param x
-	 *            �����±�
+	 *            横向下标
 	 * @param y
-	 *            �����±�
+	 *            纵向下标
 	 * @param player
-	 *            ��Ϸѡ��
+	 *            游戏选手
 	 */
 	public void addChess(int x, int y, Player player) {
 		if (mGameMap[x][y] == 0) {
@@ -158,12 +158,12 @@ public class Game {
 	}
 
 	/**
-	 * ����
-	 * 
+	 * 落子
+	 *
 	 * @param c
-	 *            ����λ��
+	 *            下子位置
 	 * @param player
-	 *            ��Ϸѡ��
+	 *            游戏选手
 	 */
 	public void addChess(Coordinate c, Player player) {
 		addChess(c.x, c.y, player);
@@ -178,8 +178,8 @@ public class Game {
 	}
 
 	/**
-	 * ���ص�ǰ���ӷ�
-	 * 
+	 * 返回当前落子方
+	 *
 	 * @return mActive
 	 */
 	public int getActive() {
@@ -187,17 +187,17 @@ public class Game {
 	}
 
 	/**
-	 * ��ȡ����
-	 * 
-	 * @return �������
+	 * 获取棋盘
+	 *
+	 * @return 棋盘数据
 	 */
 	public int[][] getChessMap() {
 		return mGameMap;
 	}
 
 	/**
-	 * ��ȡ������ʷ
-	 * 
+	 * 获取棋盘历史
+	 *
 	 * @return mActions
 	 */
 	public Deque<Coordinate> getActions() {
@@ -205,7 +205,7 @@ public class Game {
 	}
 
 	/**
-	 * ������Ϸ
+	 * 重置游戏
 	 */
 	public void reset() {
 		mGameMap = new int[mGameWidth][mGameHeight];
@@ -214,7 +214,7 @@ public class Game {
 	}
 
 	/**
-	 * ����Ҫ�������ӷ���˭��˭����
+	 * 不需要更新落子方，谁输谁先手
 	 */
 	public void resetNet() {
 		mGameMap = new int[mGameWidth][mGameHeight];
@@ -237,7 +237,7 @@ public class Game {
 		mNotify.sendMessage(msg);
 	}
 
-	// �ж��Ƿ���������
+	// 判断是否五子连珠
 	private boolean isGameEnd(int x, int y, int type) {
 		int leftX = x - 4 > 0 ? x - 4 : 0;
 		int rightX = x + 4 < mGameWidth - 1 ? x + 4 : mGameWidth - 1;
@@ -245,14 +245,14 @@ public class Game {
 		int bottomY = y + 4 < mGameHeight - 1 ? y + 4 : mGameHeight - 1;
 
 		int horizontal = 1;
-		// ��������
+		// 横向向左
 		for (int i = x - 1; i >= leftX; --i) {
 			if (mGameMap[i][y] != type) {
 				break;
 			}
 			++horizontal;
 		}
-		// ��������
+		// 横向向右
 		for (int i = x + 1; i <= rightX; ++i) {
 			if (mGameMap[i][y] != type) {
 				break;
@@ -265,14 +265,14 @@ public class Game {
 		}
 
 		int vertical = 1;
-		// ��������
+		// 纵向向上
 		for (int j = y - 1; j >= topY; --j) {
 			if (mGameMap[x][j] != type) {
 				break;
 			}
 			++vertical;
 		}
-		// ��������
+		// 纵向向下
 		for (int j = y + 1; j <= bottomY; ++j) {
 			if (mGameMap[x][j] != type) {
 				break;
@@ -285,14 +285,14 @@ public class Game {
 		}
 
 		int leftOblique = 1;
-		// ��б����
+		// 左斜向上
 		for (int i = x + 1, j = y - 1; i <= rightX && j >= topY; ++i, --j) {
 			if (mGameMap[i][j] != type) {
 				break;
 			}
 			++leftOblique;
 		}
-		// ��б����
+		// 左斜向下
 		for (int i = x - 1, j = y + 1; i >= leftX && j <= bottomY; --i, ++j) {
 			if (mGameMap[i][j] != type) {
 				break;
@@ -305,14 +305,14 @@ public class Game {
 		}
 
 		int rightOblique = 1;
-		// ��б����
+		// 右斜向上
 		for (int i = x - 1, j = y - 1; i >= leftX && j >= topY; --i, --j) {
 			if (mGameMap[i][j] != type) {
 				break;
 			}
 			++rightOblique;
 		}
-		// ��б����
+		// 右斜向下
 		for (int i = x + 1, j = y + 1; i <= rightX && j <= bottomY; ++i, ++j) {
 			if (mGameMap[i][j] != type) {
 				break;

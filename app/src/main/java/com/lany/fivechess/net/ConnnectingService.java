@@ -32,9 +32,9 @@ import android.os.Message;
 import android.util.Log;
 
 /**
- * �������<br>
- * ��ʼ���������󣬵���{@link #start()}�����ͻ����������� �ڵĿ������ֻ�ͬʱ�Լ�Ҳ���Ϊ���˿ɼ�Ķ���<br>
- * ������������������᷵�ؿ�������Ļ������IP��ַ��
+ * 联机管理<br>
+ * 初始化这个对象后，调用{@link #start()}方法就会搜索局域网 内的可连接手机，同时自己也会成为别人可见的对象。<br>
+ * 当搜索到可联机对象后会返回可连对象的机器名和IP地址。
  */
 public class ConnnectingService {
 	public static final String TAG = "ConnnectManager";
@@ -42,24 +42,24 @@ public class ConnnectingService {
 
 	private String mIp;
 
-	// UPD���ճ���
+	// UPD接收程序
 	private DatagramSocket mDataSocket;
-	// ��Զ�㲥
+	// 点对多广播
 	private MulticastSocket mMulticastSocket;
 	private InetAddress mCastAddress;
 
-	// �㲥���ַ
+	// 广播组地址
 	private static final String MUL_IP = "230.0.2.2";
 	private static final int MUL_PORT = 1688;
 	private static final int UDP_PORT = 2599;
 
-	// ����UPD��Ϣ
+	// 接收UPD消息
 	private UDPReceiver mUdpReceiver;
-	// ���չ㲥��Ϣ
+	// 接收广播消息
 	private MulticastReceiver mMulticastReceiver;
-	// udp��Ϣ����ģ��
+	// udp消息发送模块
 	private UdpSendHandler mUdpSender;
-	// �㲥��Ϣ����ģ��
+	// 广播消息发送模块
 	private MulticastSendHandler mBroadCastSender;
 
 	private Handler mRequestHandler;
@@ -72,7 +72,7 @@ public class ConnnectingService {
 	}
 
 	/**
-	 * �������ӳ���
+	 * 启动连接程序
 	 */
 	public void start() {
 		mUdpReceiver.start();
@@ -95,7 +95,7 @@ public class ConnnectingService {
 	}
 
 	/**
-	 * ����һ����ѯ�㲥��Ϣ����ѯ��ǰ�����Ӷ���
+	 * 发送一个查询广播消息，查询当前可连接对象
 	 */
 	public void sendScanMsg() {
 		Message msg = Message.obtain();
@@ -106,12 +106,12 @@ public class ConnnectingService {
 	}
 
 	/**
-	 * ����һ����ѯ�㲥��Ϣ���˳�������
+	 * 发送一个查询广播消息，退出可联机
 	 */
 	public void sendExitMsg() {
-		// ��һ���̷߳���һ��������㲥(android���̲߳������������)
-		// ����mMulticastSocket������ʱ��Ϊ�˳���ʱ���漰���̲߳���
-		// ����mMulticastSocket�Ѿ�close״̬�����ɿ�
+		// 起一个线程发送一个局域网广播(android主线程不能有网络操作)
+		// 不用mMulticastSocket对象发送时因为退出的时候涉及跨线程操作
+		// 可能mMulticastSocket已经close状态，不可控
 		new Thread() {
 			@Override
 			public void run() {
@@ -123,22 +123,22 @@ public class ConnnectingService {
 					byte[] buf = packageBroadcast(BROADCAST_EXIT);
 					DatagramPacket datagramPacket = new DatagramPacket(buf,
 							buf.length);
-					// ���յ�ַ��group�ı�ʶ��ͬ
+					// 接收地址和group的标识相同
 					datagramPacket.setAddress(address);
-					// �������Ķ˿ں�
+					// 发送至的端口号
 					datagramPacket.setPort(MUL_PORT);
 					multicastSocket.send(datagramPacket);
 					multicastSocket.close();
 				} catch (IOException e) {
 					Log.d(TAG, "send exit multicast fail:" + e.getMessage());
 				}
-			}
+			};
 		}.start();
 	}
 
 	/**
-	 * ��������������Ϣ
-	 * 
+	 * 发送请求连接消息
+	 *
 	 * @param ipDst
 	 */
 	public void sendAskConnect(String ipDst) {
@@ -152,8 +152,8 @@ public class ConnnectingService {
 	}
 
 	/**
-	 * ������������
-	 * 
+	 * 发送聊天内容
+	 *
 	 * @param content
 	 * @param ipDst
 	 */
@@ -168,7 +168,7 @@ public class ConnnectingService {
 	}
 
 	/**
-	 * ͬ������
+	 * 同意联机
 	 */
 	public void accept(String ipDst) {
 		Message msg = Message.obtain();
@@ -181,7 +181,7 @@ public class ConnnectingService {
 	}
 
 	/**
-	 * �ܾ�����
+	 * 拒绝请求
 	 */
 	public void reject(String ipDst) {
 		Message msg = Message.obtain();
@@ -194,8 +194,8 @@ public class ConnnectingService {
 	}
 
 	/**
-	 * ����UDP��Ϣ,δ����TCP����֮ǰ����ͨ��udp������Ϣ
-	 * 
+	 * 接收UDP消息,未建立TCP连接之前，都通过udp接收消息
+	 *
 	 * @author qingc
 	 *
 	 */
@@ -227,25 +227,25 @@ public class ConnnectingService {
 						Log.d(TAG, "udp received:" + Arrays.toString(buf));
 					}
 					int type = buf[0];
-					// ��buffer�н�ȡ�յ������
+					// 从buffer中截取收到的数据
 					byte[] body = new byte[dataPacket.getLength() - 1];
 					System.arraycopy(buf, 1, body, 0,
 							dataPacket.getLength() - 1);
 					switch (type) {
-					case UDP_JOIN:
-						processUdpJoin(body);
-						break;
-					case CONNECT_ASK:
-						processAsk(body);
-						break;
-					case CHAT_ONE:
-						processChat(body);
-						break;
-					case CONNECT_AGREE:
-					case CONNECT_REJECT:
-						processConnectResponse(body, type);
-					default:
-						break;
+						case UDP_JOIN:
+							processUdpJoin(body);
+							break;
+						case CONNECT_ASK:
+							processAsk(body);
+							break;
+						case CHAT_ONE:
+							processChat(body);
+							break;
+						case CONNECT_AGREE:
+						case CONNECT_REJECT:
+							processConnectResponse(body, type);
+						default:
+							break;
 					}
 
 				}
@@ -267,7 +267,7 @@ public class ConnnectingService {
 	}
 
 	/**
-	 * ����UDP��Ϣ��δ����TCP����֮ǰ����ͨ��UDP����ָ��ƶ���ip
+	 * 发送UDP消息，未建立TCP连接之前，都通过UDP发送指令到制定的ip
 	 */
 	class UdpSendHandler extends Handler {
 
@@ -296,7 +296,7 @@ public class ConnnectingService {
 				}
 				InetAddress dstAddress = InetAddress.getByName(ipDst);
 
-				// ����������ݰ�
+				// 创建发送数据包
 				DatagramPacket dataPacket = new DatagramPacket(data,
 						data.length, dstAddress, UDP_PORT);
 				ds.send(dataPacket);
@@ -316,7 +316,7 @@ public class ConnnectingService {
 	}
 
 	/**
-	 * ���չ㲥��Ϣ�̣߳����������ֻ��ɨ������㲥
+	 * 接收广播消息线程，监听其他手机的扫描或加入广播
 	 *
 	 */
 	class MulticastReceiver extends Thread {
@@ -330,15 +330,15 @@ public class ConnnectingService {
 		public MulticastReceiver() {
 			try {
 				multiSocket = new MulticastSocket();
-				// �������ʱ��Ҫָ������Ķ˿ں�
+				// 接收数据时需要指定监听的端口号
 				multiSocket = new MulticastSocket(MUL_PORT);
-				// ����㲥��
+				// 加入广播组
 				InetAddress address = InetAddress.getByName(MUL_IP);
 				mCastAddress = address;
 				multiSocket.joinGroup(address);
 				multiSocket.setTimeToLive(1);
 				dataPacket = new DatagramPacket(buffer, buffer.length);
-				// ȫ������ָ������Ĺ㲥socket,���ڷ��͹㲥��Ϣ
+				// 全局引用指向这里的广播socket,用于发送广播消息
 				mMulticastSocket = multiSocket;
 			} catch (IOException e) {
 				isInit = false;
@@ -350,9 +350,9 @@ public class ConnnectingService {
 		public void run() {
 			try {
 				while (isInit) {
-					// ������ݣ����������״̬
+					// 接收数据，会进入阻塞状态
 					mMulticastSocket.receive(dataPacket);
-					// ��buffer�н�ȡ�յ������
+					// 从buffer中截取收到的数据
 					byte[] message = new byte[dataPacket.getLength()];
 					System.arraycopy(buffer, 0, message, 0,
 							dataPacket.getLength());
@@ -383,7 +383,7 @@ public class ConnnectingService {
 	}
 
 	/**
-	 * ���͹㲥��Ϣ
+	 * 发送广播消息
 	 */
 	class MulticastSendHandler extends Handler {
 
@@ -412,9 +412,9 @@ public class ConnnectingService {
 				// s.setTimeToLive(1); is it nessary?
 				DatagramPacket datagramPacket = new DatagramPacket(buf,
 						buf.length);
-				// ���÷���group��ַ
+				// 设置发送group地址
 				datagramPacket.setAddress(address);
-				// �������Ķ˿ں�
+				// 发送至的端口号
 				datagramPacket.setPort(MUL_PORT);
 				s.send(datagramPacket);
 			} catch (IOException e) {
@@ -427,11 +427,11 @@ public class ConnnectingService {
 			getLooper().quit();
 		}
 
-	}
+	};
 
 	/**
-	 * ������Ϣ
-	 * 
+	 * 错误信息
+	 *
 	 * @param error
 	 */
 	private void onError(int error) {
@@ -442,12 +442,12 @@ public class ConnnectingService {
 	}
 
 	/**
-	 * ���µĿ�����������
-	 * 
+	 * 有新的可联机对象加入
+	 *
 	 * @param name
-	 *            ������
+	 *            机器名
 	 * @param ip
-	 *            ��ַ
+	 *            地址
 	 */
 	private void onJoin(String name, String ip) {
 		Message msg = Message.obtain();
@@ -460,12 +460,12 @@ public class ConnnectingService {
 	}
 
 	/**
-	 * �п���������˳�
-	 * 
+	 * 有可联机对象退出
+	 *
 	 * @param name
-	 *            ������
+	 *            机器名
 	 * @param ip
-	 *            ��ַ
+	 *            地址
 	 */
 	private void onExit(String name, String ip) {
 		Message msg = Message.obtain();
@@ -478,11 +478,11 @@ public class ConnnectingService {
 	}
 
 	/**
-	 * ����UDP��������Ӷ�����Ϣ
-	 * 
+	 * 处理UDP加入可连接对象消息
+	 *
 	 * @param data
-	 *            ���յ�����Ϣ��
-	 * @return ���ؽ�������ip��ַ
+	 *            接收到的消息体
+	 * @return 返回解析到的ip地址
 	 */
 	private void processUdpJoin(byte[] data) {
 		int nameLen = data[0];
@@ -498,14 +498,14 @@ public class ConnnectingService {
 	}
 
 	/**
-	 * ��������ƺ�ip��ַ��װ��byte����
-	 * 
+	 * 将本机名称和ip地址封装成byte数组
+	 *
 	 * @return
 	 */
 	private byte[] packageUdpJoin() {
 		byte[] ip = mIp.getBytes();
 		byte[] name = (Build.BRAND + "-" + Build.MODEL).getBytes();
-		// ��Ϣ���Ȱ���(���֡����ֳ��ȡ�ip��ip���ȡ��㲥����)
+		// 消息长度包括(名字、名字长度、ip、ip长度、广播类型)
 		int dataLen = name.length + ip.length + 3;
 		byte[] data = new byte[dataLen];
 		data[0] = UDP_JOIN;
@@ -519,11 +519,11 @@ public class ConnnectingService {
 	}
 
 	/**
-	 * ����㲥��Ϣ
-	 * 
+	 * 处理广播消息
+	 *
 	 * @param data
-	 *            ���յ�����Ϣ��
-	 * @return ���ؽ�������ip��ַ
+	 *            接收到的消息体
+	 * @return 返回解析到的ip地址
 	 */
 	private String processBroadcast(byte[] data) {
 		int nameLen = data[0];
@@ -535,7 +535,7 @@ public class ConnnectingService {
 		String name = new String(nameArr);
 		String ip = new String(iparr);
 		Log.d(TAG, "processBroadcast-->" + "name=" + name + "  ip=" + ip);
-		// ������Լ����͵���Ϣ���򲻼�������Ӽ���
+		// 如果是自己发送的信息，则不加入可连接集合
 		if (ip.equals(mIp)) {
 			return ip;
 		}
@@ -549,14 +549,14 @@ public class ConnnectingService {
 	}
 
 	/**
-	 * ��������ƺ�ip��ַ��װ��byte����
-	 * 
+	 * 将本机名称和ip地址封装成byte数组
+	 *
 	 * @return
 	 */
 	private byte[] packageBroadcast(int type) {
 		byte[] ip = mIp.getBytes();
 		byte[] name = (Build.BRAND + "-" + Build.MODEL).getBytes();
-		// ��Ϣ���Ȱ���(���֡����ֳ��ȡ�ip��ip���ȡ��㲥����)
+		// 消息长度包括(名字、名字长度、ip、ip长度、广播类型)
 		int dataLen = name.length + 1 + ip.length + 1 + 1;
 		byte[] data = new byte[dataLen];
 		int namePos = 0;
@@ -570,14 +570,14 @@ public class ConnnectingService {
 	}
 
 	/**
-	 * ��װ����������Ϣ��
-	 * 
+	 * 封装请求连接消息体
+	 *
 	 * @return data
 	 */
 	private byte[] createAskConnect() {
 		byte[] ip = mIp.getBytes();
 		byte[] name = (Build.BRAND + "-" + Build.MODEL).getBytes();
-		// ��Ϣ���Ȱ���(���֡����ֳ��ȡ�ip��ip���ȡ��㲥����)
+		// 消息长度包括(名字、名字长度、ip、ip长度、广播类型)
 		int dataLen = name.length + ip.length + 3;
 		byte[] data = new byte[dataLen];
 		data[0] = CONNECT_ASK;
@@ -591,8 +591,8 @@ public class ConnnectingService {
 	}
 
 	/**
-	 * ���������������
-	 * 
+	 * 解析请求联机数据
+	 *
 	 * @param data
 	 */
 	private void processAsk(byte[] data) {
@@ -615,15 +615,15 @@ public class ConnnectingService {
 	}
 
 	/**
-	 * ��������������Ϣ��
-	 * 
+	 * 创建聊天内容消息体
+	 *
 	 * @return
 	 */
 	private byte[] createChat(String content) {
 		byte[] ip = mIp.getBytes();
 		byte[] name = (Build.BRAND).getBytes();
 		byte[] chat = content.getBytes();
-		// ��Ϣ���Ȱ���(���֡����ֳ��ȡ�ip��ip���ȡ��㲥���͡��������ݡ����쳤��)
+		// 消息长度包括(名字、名字长度、ip、ip长度、广播类型、聊天内容、聊天长度)
 		int dataLen = name.length + ip.length + 3 + chat.length + 1;
 		byte[] data = new byte[dataLen];
 		data[0] = CHAT_ONE;
@@ -640,8 +640,8 @@ public class ConnnectingService {
 	}
 
 	/**
-	 * ������������
-	 * 
+	 * 处理聊天内容
+	 *
 	 * @param data
 	 */
 	private void processChat(byte[] data) {
@@ -671,15 +671,15 @@ public class ConnnectingService {
 	}
 
 	/**
-	 * ����������Ӧ��Ϣ
-	 * 
+	 * 创建连接相应消息
+	 *
 	 * @param type
-	 * @return ��Ϣ����
+	 * @return 消息数组
 	 */
 	private byte[] createConnectResponse(int type) {
 		byte[] ip = mIp.getBytes();
 		byte[] name = (Build.BRAND).getBytes();
-		// ��Ϣ���Ȱ���(���֡����ֳ��ȡ�ip��ip���ȡ��㲥����)
+		// 消息长度包括(名字、名字长度、ip、ip长度、广播类型)
 		int dataLen = name.length + ip.length + 3;
 		byte[] data = new byte[dataLen];
 		data[0] = (byte) type;
@@ -693,8 +693,8 @@ public class ConnnectingService {
 	}
 
 	/**
-	 * ��������������Ӧ������
-	 * 
+	 * 解析连接请求响应并处理
+	 *
 	 * @param data
 	 * @param type
 	 */

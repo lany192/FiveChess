@@ -2,11 +2,11 @@ package com.lany.fivechess.game;
 
 public class Player {
 	String mName;
-	// ���ӻ��Ǻ���
+	// 白子还是黑子
 	int type;
-	// ʤ��
+	// 胜局
 	int mWin;
-	// �ܾ�
+	// 败局
 	int mLose;
 
 	public Player(String name, int type) {
@@ -29,7 +29,7 @@ public class Player {
 	}
 
 	/**
-	 * ʤһ��
+	 * 胜一局
 	 */
 	public void win() {
 		mWin += 1;
@@ -40,7 +40,7 @@ public class Player {
 	}
 
 	/**
-	 * ��һ��
+	 * 负一局
 	 */
 	public void lose() {
 		mLose += 1;

@@ -21,8 +21,8 @@ import android.os.Message;
 import android.util.Log;
 
 /**
- * ������<br>
- * ����������Ϣ��Է�
+ * 联机传输<br>
+ * 传输棋盘信息给对方
  */
 public class ConnectedService {
 
@@ -53,8 +53,8 @@ public class ConnectedService {
 	}
 
 	/**
-	 * ����
-	 * 
+	 * 下子
+	 *
 	 * @param x
 	 * @param y
 	 */
@@ -70,7 +70,7 @@ public class ConnectedService {
 	}
 
 	/**
-	 * �������
+	 * 请求悔棋
 	 */
 	public void rollback() {
 		byte[] data = new byte[2];
@@ -82,7 +82,7 @@ public class ConnectedService {
 	}
 
 	/**
-	 * ͬ�����
+	 * 同意悔棋
 	 */
 	public void agreeRollback() {
 		byte[] data = new byte[2];
@@ -94,7 +94,7 @@ public class ConnectedService {
 	}
 
 	/**
-	 * �ܾ����
+	 * 拒绝悔棋
 	 */
 	public void rejectRollback() {
 		byte[] data = new byte[2];
@@ -111,7 +111,7 @@ public class ConnectedService {
 	}
 
 	/**
-	 * TCP��Ϣ�����߳�
+	 * TCP消息接收线程
 	 */
 	class GameReceiver extends Thread {
 
@@ -136,7 +136,7 @@ public class ConnectedService {
 					InetSocketAddress addr = new InetSocketAddress(mIp,
 							TCP_PORT);
 					/*
-					 * ����ʧ�ܳ�������������8�� ��Ϊ�������ܲ�һ���ܱ�֤��ΪServer�˵�Activity���ڿͻ�������
+					 * 连接失败尝试重连，重试8次 因为机器性能不一样不能保证作为Server端的Activity先于客户端启动
 					 */
 					int retryCount = 0;
 					while (retryCount < 8) {
@@ -153,7 +153,7 @@ public class ConnectedService {
 								Thread.sleep(200);
 							} catch (InterruptedException e1) {
 							}
-							Log.d(TAG, "connect exception ��" + e.getMessage()
+							Log.d(TAG, "connect exception ：" + e.getMessage()
 									+ "  retry count=" + retryCount);
 						}
 					}
@@ -172,14 +172,14 @@ public class ConnectedService {
 				is = mSocket.getInputStream();
 				while (!isStop) {
 					if (is.read(buf) == -1) {
-						// ���ӶϿ�
+						// 连接断开
 						break;
 					}
 					if (DEBUG) {
 						Log.d(TAG, "tcp received:" + Arrays.toString(buf));
 					}
 					int length = buf[0];
-					// ��buffer�н�ȡ�յ������
+					// 从buffer中截取收到的数据
 					byte[] body = new byte[length];
 					System.arraycopy(buf, 1, body, 0, length);
 					processNetData(body);
@@ -187,7 +187,7 @@ public class ConnectedService {
 			} catch (IOException e) {
 				Log.d(TAG, "IOException:"
 						+ "an error occurs while receiving data");
-				// TODO ��ʾ���ӶϿ�
+				// TODO 提示连接断开
 			}
 
 		}
@@ -209,7 +209,7 @@ public class ConnectedService {
 	}
 
 	/**
-	 * ����Ϣ����TCP�����̷߳���
+	 * 把消息交给TCP发送线程发送
 	 */
 	class GameSender extends Handler {
 
@@ -228,7 +228,7 @@ public class ConnectedService {
 					return;
 				}
 				OutputStream os = s.getOutputStream();
-				// �������
+				// 发送数据
 				os.write(data);
 				os.flush();
 			} catch (IOException e) {
@@ -242,26 +242,26 @@ public class ConnectedService {
 			getLooper().quit();
 		}
 
-	}
+	};
 
-	// ������Ϣ
+	// 处理消息
 	private void processNetData(byte[] data) {
 		int type = data[0];
 		switch (type) {
-		case CONNECT_ADD_CHESS:
-			notifyAddChess(data[1], data[2]);
-			break;
-		case ROLLBACK_ASK:
-			mRequestHandler.sendEmptyMessage(ROLLBACK_ASK);
-			break;
-		case ROLLBACK_AGREE:
-			mRequestHandler.sendEmptyMessage(ROLLBACK_AGREE);
-			break;
-		case ROLLBACK_REJECT:
-			mRequestHandler.sendEmptyMessage(ROLLBACK_REJECT);
-			break;
-		default:
-			break;
+			case CONNECT_ADD_CHESS:
+				notifyAddChess(data[1], data[2]);
+				break;
+			case ROLLBACK_ASK:
+				mRequestHandler.sendEmptyMessage(ROLLBACK_ASK);
+				break;
+			case ROLLBACK_AGREE:
+				mRequestHandler.sendEmptyMessage(ROLLBACK_AGREE);
+				break;
+			case ROLLBACK_REJECT:
+				mRequestHandler.sendEmptyMessage(ROLLBACK_REJECT);
+				break;
+			default:
+				break;
 		}
 	}
 

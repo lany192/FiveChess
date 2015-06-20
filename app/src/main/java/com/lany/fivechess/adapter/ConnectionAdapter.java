@@ -23,6 +23,7 @@ public class ConnectionAdapter extends BaseAdapter {
 
 	@Override
 	public int getCount() {
+
 		return mData.size();
 	}
 

@@ -7,9 +7,9 @@ public class RobotAI {
 	public static final int HOR_VER = 3;
 	public static final int VER_HOR = 4;
 
-	// private static final int FIVE = 100; // ����
-	// private static final int L_FOUR = 90; // ����
-	// private static final int D_FOUR = 100; // ����
+	// private static final int FIVE = 100; // 活五
+	// private static final int L_FOUR = 90; // 活四
+	// private static final int D_FOUR = 100; // 死四
 
 	private int mWidth = 0;
 	private int mHeight = 0;
@@ -20,7 +20,7 @@ public class RobotAI {
 	int[][][] white = null;
 
 	// the value of position which has different performance
-	// �������еĸ������Ȩֵ
+	// 五子棋中的各个点的权值
 	int[][] plaValue = { { 2, 6, 173, 212, 250, 250, 250 },
 			{ 0, 5, 7, 200, 230, 231, 231 }, { 0, 0, 0, 0, 230, 230, 230, 0 } };
 	int[][] cpuValue = { { 0, 3, 166, 186, 229, 229, 229 },
@@ -40,8 +40,8 @@ public class RobotAI {
 	}
 
 	/**
-	 * ��������Ȩֵ
-	 * 
+	 * 更新棋盘权值
+	 *
 	 * @param game
 	 */
 	public void updateValue(Game game) {
@@ -50,8 +50,8 @@ public class RobotAI {
 	}
 
 	/**
-	 * ��������Ȩֵ
-	 * 
+	 * 更新棋盘权值
+	 *
 	 * @param game
 	 */
 	public void updateValue(int[][] map) {
@@ -61,8 +61,8 @@ public class RobotAI {
 			for (int j = 0; j < mHeight; j++) {
 				if (map[i][j] == 0) {
 					int counter = 0;
-					// �Բ�ͬ��������벻ͬ��Ȩֵ
-					// ����
+					// 对不同的情况给与不同的权值
+					// 纵向
 					for (int k = j + 1; k < mHeight; k++) {
 
 						if (map[i][k] == Game.BLACK) {
@@ -103,7 +103,7 @@ public class RobotAI {
 					computerValue[0] = 0;
 					counter = 0;
 
-					// ��б��
+					// 反斜线
 					for (int k = i + 1, l = j + 1; l < mHeight; k++, l++) {
 						if (k >= mHeight) {
 							break;
@@ -152,7 +152,7 @@ public class RobotAI {
 					computerValue[1] = 0;
 					counter = 0;
 
-					// ����
+					// 横向
 					for (int k = i + 1; k < mWidth; k++) {
 
 						if (map[k][j] == Game.BLACK) {
@@ -194,7 +194,7 @@ public class RobotAI {
 					computerValue[2] = 0;
 					counter = 0;
 
-					// ��б��
+					// 正斜线
 					for (int k = i - 1, l = j + 1; l < mWidth; k--, l++) {
 
 						if (k < 0) {
@@ -243,7 +243,7 @@ public class RobotAI {
 					computerValue[3] = 0;
 					counter = 0;
 
-					// ͬʱ�ж����������ϵ�Ȩֵ��������һ���ʵ���Ȩֵ
+					// 同时判断两个方向上的权值，并给他一个适当的权值
 					for (int k = 0; k < 4; k++) {
 						if (white[i][j][k] == 173) {
 							counter++;
@@ -275,7 +275,7 @@ public class RobotAI {
 									}
 								}
 							}
-							// ������������ϵ�Ȩֵ���ǻ����Ȩֵ
+							// 如果两个方向上的权值都是活三，降低权值
 							if (white[i][j - 1][0] == 173) {
 								for (int k = 0; k < 4; k++) {
 									if (white[i][j][k] == 173) {

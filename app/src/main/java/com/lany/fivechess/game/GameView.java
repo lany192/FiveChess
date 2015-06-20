@@ -18,20 +18,20 @@ import android.view.SurfaceView;
 import android.view.View;
 
 /**
- * ������Ϸ����ʾ����Ϸ���߼��ж���Game.java��
+ * 负责游戏的显示，游戏的逻辑判断在Game.java中
  */
 public class GameView extends SurfaceView implements SurfaceHolder.Callback {
 	private static final String TAG = "GameView";
 	SurfaceHolder mSurfaceHolder;
-	// ���ӻ���
-	private Paint chessPaint = new Paint();
-	// ���̻���
+	// 棋子画笔
+	private Paint chessPaint = new Paint();;
+	// 棋盘画笔
 	private Paint boardPaint = new Paint();
 	private int boardColor = 0;
 	private float boardWidth = 0.0f;
 	private float anchorWidth = 0.0f;
 
-	// ��������
+	// 清屏画笔
 	Paint clear = new Paint();
 
 	public int[][] mChessArray = null;
@@ -70,7 +70,7 @@ public class GameView extends SurfaceView implements SurfaceHolder.Callback {
 	private void init() {
 		mSurfaceHolder = this.getHolder();
 		mSurfaceHolder.addCallback(this);
-		// ����͸��
+		// 设置透明
 		mSurfaceHolder.setFormat(PixelFormat.TRANSLUCENT);
 		setZOrderOnTop(true);
 		chessPaint.setAntiAlias(true);
@@ -81,8 +81,8 @@ public class GameView extends SurfaceView implements SurfaceHolder.Callback {
 	}
 
 	/**
-	 * ������Ϸ
-	 * 
+	 * 设置游戏
+	 *
 	 * @param game
 	 */
 	public void setGame(Game game) {
@@ -92,8 +92,8 @@ public class GameView extends SurfaceView implements SurfaceHolder.Callback {
 
 	@Override
 	protected void onMeasure(int widthMeasureSpec, int heightMeasureSpec) {
-		// ���ø߶�����һ��
-		int width = MeasureSpec.getSize(widthMeasureSpec);
+		// 设置高度与宽度一样
+		int width = View.MeasureSpec.getSize(widthMeasureSpec);
 		if (mGame != null) {
 			if (width % mGame.getWidth() == 0) {
 				float scale = ((float) mGame.getHeight()) / mGame.getWidth();
@@ -112,7 +112,7 @@ public class GameView extends SurfaceView implements SurfaceHolder.Callback {
 
 	@Override
 	protected void onLayout(boolean changed, int left, int top, int right,
-			int bottom) {
+							int bottom) {
 		super.onLayout(changed, left, top, right, bottom);
 		if (mGame != null) {
 			mChessboardWidth = mGame.getWidth();
@@ -125,7 +125,7 @@ public class GameView extends SurfaceView implements SurfaceHolder.Callback {
 	}
 
 	/**
-	 * ������Ϸ����
+	 * 绘制游戏界面
 	 */
 	public void drawGame() {
 		Canvas canvas = mSurfaceHolder.lockCanvas();
@@ -133,7 +133,7 @@ public class GameView extends SurfaceView implements SurfaceHolder.Callback {
 			Log.d(TAG, "mholde=" + mSurfaceHolder + "  canvas=" + canvas);
 			return;
 		}
-		// ���� ���Ƿ���Բ�����������˫���弼��ʵ��
+		// 清屏 ：是否可以不用清屏，用双缓冲技术实现
 		canvas.drawPaint(clear);
 		drawChessBoard(canvas);
 		drawChess(canvas);
@@ -142,12 +142,12 @@ public class GameView extends SurfaceView implements SurfaceHolder.Callback {
 	}
 
 	/**
-	 * ����һ������
-	 * 
+	 * 增加一个棋子
+	 *
 	 * @param x
-	 *            �����
+	 *            横坐标
 	 * @param y
-	 *            �����
+	 *            纵坐标
 	 */
 	public void addChess(int x, int y) {
 		if (mGame == null) {
@@ -164,40 +164,33 @@ public class GameView extends SurfaceView implements SurfaceHolder.Callback {
 		float x = event.getX();
 		float y = event.getY();
 		switch (action) {
-		case MotionEvent.ACTION_DOWN:
-			focus.x = (int) (x / mChessSize);
-			focus.y = (int) (y / mChessSize);
-			isDrawFocus = true;
-			drawGame();
-			break;
-		case MotionEvent.ACTION_MOVE:
-			break;
-		case MotionEvent.ACTION_UP:
-			isDrawFocus = false;
-			int newx = (int) (x / mChessSize);
-			int newy = (int) (y / mChessSize);
-			if (canAdd(newx, newy, focus)) {
-				addChess(focus.x, focus.y);
-			} else {
+			case MotionEvent.ACTION_DOWN:
+				focus.x = (int) (x / mChessSize);
+				focus.y = (int) (y / mChessSize);
+				isDrawFocus = true;
 				drawGame();
-			}
-			break;
-		default:
-			break;
+				break;
+			case MotionEvent.ACTION_MOVE:
+				break;
+			case MotionEvent.ACTION_UP:
+				isDrawFocus = false;
+				int newx = (int) (x / mChessSize);
+				int newy = (int) (y / mChessSize);
+				if (canAdd(newx, newy, focus)) {
+					addChess(focus.x, focus.y);
+				} else {
+					drawGame();
+				}
+				break;
+			default:
+				break;
 		}
 		return true;
 	}
 
 	/**
-	 * �ж��Ƿ�ȡ��˴�����
-	 * 
-	 * @param x
-	 *            xλ��
-	 * @param y
-	 *            yλ��
-	 * @param down
-	 *            ���µĵ�λ
-	 * @return
+	 * 判断是否取消此次下子
+	 *
 	 */
 	private boolean canAdd(float x, float y, Coordinate focus) {
 		return x < focus.x + 3 && x > focus.x - 3 && y < focus.y + 3
@@ -205,14 +198,14 @@ public class GameView extends SurfaceView implements SurfaceHolder.Callback {
 	}
 
 	/**
-	 * ��������
-	 * 
+	 * 创建棋子
+	 *
 	 * @param width
-	 *            VIEW�Ŀ��
+	 *            VIEW的宽度
 	 * @param height
-	 *            VIEW�ĸ߶�
+	 *            VIEW的高度
 	 * @param type
-	 *            ���͡������ӻ����
+	 *            类型——白子或黑子
 	 * @return Bitmap
 	 */
 	private Bitmap createChess(int width, int height, int type) {
@@ -237,7 +230,7 @@ public class GameView extends SurfaceView implements SurfaceHolder.Callback {
 		return bitmap;
 	}
 
-	// �����̱���
+	// 画棋盘背景
 	private void drawChessBoard() {
 		Canvas canvas = mSurfaceHolder.lockCanvas();
 		if (mSurfaceHolder == null || canvas == null) {
@@ -247,42 +240,42 @@ public class GameView extends SurfaceView implements SurfaceHolder.Callback {
 		mSurfaceHolder.unlockCanvasAndPost(canvas);
 	}
 
-	// �����̱���
+	// 画棋盘背景
 	private void drawChessBoard(Canvas canvas) {
-		// ����ê��(���ĵ�)
+		// 绘制锚点(中心点)
 		int startX = mChessSize / 2;
 		int startY = mChessSize / 2;
 		int endX = startX + (mChessSize * (mChessboardWidth - 1));
 		int endY = startY + (mChessSize * (mChessboardHeight - 1));
-		// draw ��ֱ��
+		// draw 竖直线
 		for (int i = 0; i < mChessboardWidth; ++i) {
 			canvas.drawLine(startX + (i * mChessSize), startY, startX
 					+ (i * mChessSize), endY, boardPaint);
 		}
-		// draw ˮƽ��
+		// draw 水平线
 		for (int i = 0; i < mChessboardHeight; ++i) {
 			canvas.drawLine(startX, startY + (i * mChessSize), endX, startY
 					+ (i * mChessSize), boardPaint);
 		}
-		// ����ê��(���ĵ�)
+		// 绘制锚点(中心点)
 		int circleX = startX + mChessSize * (mChessboardWidth / 2);
 		int circleY = startY + mChessSize * (mChessboardHeight / 2);
 		canvas.drawCircle(circleX, circleY, anchorWidth, boardPaint);
-		// ����ê��(�������Ͻǵĵ�)
+		// 绘制锚点(棋盘左上角的点)
 		int aX = startX + mChessSize * (mChessboardWidth / 4);
 		int aY = startY + mChessSize * (mChessboardHeight / 4);
 		canvas.drawCircle(aX, aY, anchorWidth, boardPaint);
-		// ����ê��(�������Ͻǵĵ�)
+		// 绘制锚点(棋盘右上角的点)
 		int bX = startX + mChessSize
 				* (mChessboardWidth / 4 + mChessboardWidth / 2 + 1);
 		int bY = startY + mChessSize * (mChessboardHeight / 4);
 		canvas.drawCircle(bX, bY, anchorWidth, boardPaint);
-		// ����ê��(�������½ǵĵ�)
+		// 绘制锚点(棋盘左下角的点)
 		int cX = startX + mChessSize * (mChessboardWidth / 4);
 		int cY = startY + mChessSize
 				* (mChessboardHeight / 4 + mChessboardHeight / 2 + 1);
 		canvas.drawCircle(cX, cY, anchorWidth, boardPaint);
-		// ����ê��(�������½ǵĵ�)
+		// 绘制锚点(棋盘右下角的点)
 		int dX = startX + mChessSize
 				* (mChessboardWidth / 4 + mChessboardWidth / 2 + 1);
 		int dY = startY + mChessSize
@@ -290,7 +283,7 @@ public class GameView extends SurfaceView implements SurfaceHolder.Callback {
 		canvas.drawCircle(dX, dY, anchorWidth, boardPaint);
 	}
 
-	// ������
+	// 画棋子
 	private void drawChess(Canvas canvas) {
 		int[][] chessMap = mGame.getChessMap();
 		for (int x = 0; x < chessMap.length; ++x) {
@@ -305,7 +298,7 @@ public class GameView extends SurfaceView implements SurfaceHolder.Callback {
 				}
 			}
 		}
-		// �������µ�һ������
+		// 画最新下的一个棋子
 		if (mGame.getActions() != null && mGame.getActions().size() > 0) {
 			Coordinate last = mGame.getActions().getLast();
 			int lastType = chessMap[last.x][last.y];
@@ -320,8 +313,8 @@ public class GameView extends SurfaceView implements SurfaceHolder.Callback {
 	}
 
 	/**
-	 * ����ǰ��
-	 * 
+	 * 画当前框
+	 *
 	 * @param canvas
 	 */
 	private void drawFocus(Canvas canvas) {
@@ -333,7 +326,7 @@ public class GameView extends SurfaceView implements SurfaceHolder.Callback {
 
 	@Override
 	public void surfaceChanged(SurfaceHolder holder, int format, int width,
-			int height) {
+							   int height) {
 		if (mBlack != null) {
 			mBlack.recycle();
 		}
@@ -349,7 +342,7 @@ public class GameView extends SurfaceView implements SurfaceHolder.Callback {
 
 	@Override
 	public void surfaceCreated(SurfaceHolder holder) {
-		// ��ʼ������
+		// 初始化棋盘
 		drawChessBoard();
 	}
 
