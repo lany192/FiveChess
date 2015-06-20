@@ -43,21 +43,21 @@ public class FightGameActivity extends AppCompatActivity implements OnClickListe
 		public void handleMessage(Message msg) {
 			Log.d(TAG, "refresh action=" + msg.what);
 			switch (msg.what) {
-			case GameConstants.GAME_OVER:
-				if (msg.arg1 == Game.BLACK) {
-					showWinDialog("黑方�?");
-					black.win();
-				} else if (msg.arg1 == Game.WHITE) {
-					showWinDialog("白方�?");
-					white.win();
-				}
-				updateScore(black, white);
-				break;
-			case GameConstants.ADD_CHESS:
-				updateActive(mGame);
-				break;
-			default:
-				break;
+				case GameConstants.GAME_OVER:
+					if (msg.arg1 == Game.BLACK) {
+						showWinDialog("黑方�?");
+						black.win();
+					} else if (msg.arg1 == Game.WHITE) {
+						showWinDialog("白方�?");
+						white.win();
+					}
+					updateScore(black, white);
+					break;
+				case GameConstants.ADD_CHESS:
+					updateActive(mGame);
+					break;
+				default:
+					break;
 			}
 		}
 	};
@@ -138,25 +138,25 @@ public class FightGameActivity extends AppCompatActivity implements OnClickListe
 	@Override
 	public void onClick(View v) {
 		switch (v.getId()) {
-		case R.id.restart:
-			mGame.reset();
-			updateActive(mGame);
-			updateScore(black, white);
-			mGameView.drawGame();
-			break;
-		case R.id.rollback:
-			mGame.rollback();
-			updateActive(mGame);
-			mGameView.drawGame();
-			break;
-		case R.id.about:
+			case R.id.restart:
+				mGame.reset();
+				updateActive(mGame);
+				updateScore(black, white);
+				mGameView.drawGame();
+				break;
+			case R.id.rollback:
+				mGame.rollback();
+				updateActive(mGame);
+				mGameView.drawGame();
+				break;
+			case R.id.about:
 
-			break;
-		case R.id.setting:
+				break;
+			case R.id.setting:
 
-			break;
-		default:
-			break;
+				break;
+			default:
+				break;
 		}
 
 	}

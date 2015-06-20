@@ -38,13 +38,13 @@ public class NetGameActivity extends AppCompatActivity implements OnClickListene
 	private Game mGame;
 	private Player me;
 	private Player challenger;
-	// ʤ��
+	// 胜局
 	private TextView mBlackWin;
 	private TextView mWhiteWin;
-	// ��ǰ���ӷ�
+	// 当前落子方
 	private ImageView mBlackActive;
 	private ImageView mWhiteActive;
-	// ����
+	// 姓名
 	private TextView mBlackName;
 	private TextView mWhiteName;
 	// Control Button
@@ -52,16 +52,16 @@ public class NetGameActivity extends AppCompatActivity implements OnClickListene
 	private Button rollback;
 	private Button requestEqual;
 	private Button fail;
-	// �������
+	// 网络服务
 	private ConnectedService mService;
 	boolean isServer;
 	String ip;
-	// ���ӵȴ��
+	// 连接等待框
 	private ProgressDialog waitDialog;
 	private boolean isRequest;
 
 	public static void startActivity(Context context, boolean server,
-			String dstIp) {
+									 String dstIp) {
 		Intent intent = new Intent(context, NetGameActivity.class);
 		Bundle b = new Bundle();
 		b.putBoolean("isServer", server);
@@ -76,10 +76,10 @@ public class NetGameActivity extends AppCompatActivity implements OnClickListene
 		setContentView(R.layout.game_net);
 		Bundle b = getIntent().getExtras();
 		if (b == null) {
-			Toast.makeText(this, "��������ʧ��,������", Toast.LENGTH_SHORT).show();
+			Toast.makeText(this, "建立网络失败,请重试", Toast.LENGTH_SHORT).show();
 			finish();
 		}
-		showProgressDialog(null, "���������У����Ժ�");
+		showProgressDialog(null, "建立连接中，请稍后");
 		isServer = b.getBoolean("isServer");
 		ip = b.getString("ip");
 
@@ -88,7 +88,7 @@ public class NetGameActivity extends AppCompatActivity implements OnClickListene
 	}
 
 	/**
-	 * ������Ϸ�ص���Ϣ��ˢ�½���
+	 * 处理游戏回调信息，刷新界面
 	 */
 	private Handler mRefreshHandler = new Handler() {
 
@@ -96,32 +96,32 @@ public class NetGameActivity extends AppCompatActivity implements OnClickListene
 		public void handleMessage(Message msg) {
 			Log.d(TAG, "refresh action=" + msg.what);
 			switch (msg.what) {
-			case GameConstants.GAME_OVER:
-				if (msg.arg1 == me.getType()) {
-					showWinDialog("��ϲ�㣡��Ӯ�ˣ�");
-					me.win();
-				} else if (msg.arg1 == challenger.getType()) {
-					showWinDialog("���ź��������ˣ�");
-					challenger.win();
-				} else {
-					Log.d(TAG, "type=" + msg.arg1);
-				}
-				updateScore(me, challenger);
-				break;
-			case GameConstants.ADD_CHESS:
-				int x = msg.arg1;
-				int y = msg.arg2;
-				mService.addChess(x, y);
-				updateActive(mGame);
-				break;
-			default:
-				break;
+				case GameConstants.GAME_OVER:
+					if (msg.arg1 == me.getType()) {
+						showWinDialog("恭喜你！你赢了！");
+						me.win();
+					} else if (msg.arg1 == challenger.getType()) {
+						showWinDialog("很遗憾！你输了！");
+						challenger.win();
+					} else {
+						Log.d(TAG, "type=" + msg.arg1);
+					}
+					updateScore(me, challenger);
+					break;
+				case GameConstants.ADD_CHESS:
+					int x = msg.arg1;
+					int y = msg.arg2;
+					mService.addChess(x, y);
+					updateActive(mGame);
+					break;
+				default:
+					break;
 			}
 		}
 	};
 
 	/**
-	 * ����������Ϣ�����½���
+	 * 处理网络信息，更新界面
 	 */
 	private Handler mRequestHandler = new Handler() {
 
@@ -129,30 +129,30 @@ public class NetGameActivity extends AppCompatActivity implements OnClickListene
 		public void handleMessage(Message msg) {
 			Log.d(TAG, "net action=" + msg.what);
 			switch (msg.what) {
-			case GAME_CONNECTED:
-				waitDialog.dismiss();
-				break;
-			case CONNECT_ADD_CHESS:
-				mGame.addChess(msg.arg1, msg.arg2, challenger);
-				mGameView.drawGame();
-				updateActive(mGame);
-				break;
-			case ROLLBACK_ASK:
-				showRollbackDialog();
-				break;
-			case ROLLBACK_AGREE:
-				Toast.makeText(NetGameActivity.this, "�Է�ͬ�����",
-						Toast.LENGTH_SHORT).show();
-				rollback();
-				isRequest = false;
-				break;
-			case ROLLBACK_REJECT:
-				isRequest = false;
-				Toast.makeText(NetGameActivity.this, "�Է��ܾ����������",
-						Toast.LENGTH_LONG).show();
-				break;
-			default:
-				break;
+				case GAME_CONNECTED:
+					waitDialog.dismiss();
+					break;
+				case CONNECT_ADD_CHESS:
+					mGame.addChess(msg.arg1, msg.arg2, challenger);
+					mGameView.drawGame();
+					updateActive(mGame);
+					break;
+				case ROLLBACK_ASK:
+					showRollbackDialog();
+					break;
+				case ROLLBACK_AGREE:
+					Toast.makeText(NetGameActivity.this, "对方同意悔棋",
+							Toast.LENGTH_SHORT).show();
+					rollback();
+					isRequest = false;
+					break;
+				case ROLLBACK_REJECT:
+					isRequest = false;
+					Toast.makeText(NetGameActivity.this, "对方拒绝了你的请求",
+							Toast.LENGTH_LONG).show();
+					break;
+				default:
+					break;
 			}
 		}
 	};
@@ -232,7 +232,7 @@ public class NetGameActivity extends AppCompatActivity implements OnClickListene
 	private void showWinDialog(String message) {
 		AlertDialog.Builder b = new AlertDialog.Builder(this);
 		b.setMessage(message);
-		b.setPositiveButton("����", new DialogInterface.OnClickListener() {
+		b.setPositiveButton("继续", new DialogInterface.OnClickListener() {
 
 			@Override
 			public void onClick(DialogInterface dialog, int which) {
@@ -240,7 +240,7 @@ public class NetGameActivity extends AppCompatActivity implements OnClickListene
 				mGameView.drawGame();
 			}
 		});
-		b.setNegativeButton("�˳�", new DialogInterface.OnClickListener() {
+		b.setNegativeButton("退出", new DialogInterface.OnClickListener() {
 
 			@Override
 			public void onClick(DialogInterface dialog, int which) {
@@ -253,24 +253,24 @@ public class NetGameActivity extends AppCompatActivity implements OnClickListene
 	@Override
 	public void onClick(View v) {
 		switch (v.getId()) {
-		case R.id.restart:
-			mGame.reset();
-			updateActive(mGame);
-			updateScore(me, challenger);
-			mGameView.drawGame();
-			break;
-		case R.id.rollback:
-			mService.rollback();
-			isRequest = true;
-			break;
-		case R.id.requestEqual:
+			case R.id.restart:
+				mGame.reset();
+				updateActive(mGame);
+				updateScore(me, challenger);
+				mGameView.drawGame();
+				break;
+			case R.id.rollback:
+				mService.rollback();
+				isRequest = true;
+				break;
+			case R.id.requestEqual:
 
-			break;
-		case R.id.fail:
+				break;
+			case R.id.fail:
 
-			break;
-		default:
-			break;
+				break;
+			default:
+				break;
 		}
 	}
 
@@ -283,7 +283,7 @@ public class NetGameActivity extends AppCompatActivity implements OnClickListene
 		mGameView.drawGame();
 	}
 
-	// ��ʾ�ȴ��
+	// 显示等待框
 	private void showProgressDialog(String title, String message) {
 		if (waitDialog == null) {
 			waitDialog = new ProgressDialog(this);
@@ -299,7 +299,7 @@ public class NetGameActivity extends AppCompatActivity implements OnClickListene
 
 	private void showRollbackDialog() {
 		AlertDialog.Builder b = new AlertDialog.Builder(this);
-		b.setMessage("�Ƿ�ͬ��Է�����");
+		b.setMessage("是否同意对方悔棋");
 		b.setCancelable(false);
 		b.setPositiveButton(R.string.agree,
 				new DialogInterface.OnClickListener() {
