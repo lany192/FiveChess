@@ -1,10 +1,11 @@
-package com.lany.fivechess;
+package com.lany.fivechess.activity;
 
-import android.support.v7.app.ActionBarActivity;
+import android.content.Intent;
 import android.os.Bundle;
 import android.support.v7.app.AppCompatActivity;
-import android.view.Menu;
-import android.view.MenuItem;
+
+import com.lany.fivechess.R;
+import com.lany.fivechess.activity.MainActivity;
 
 
 public class WelcomeActivity extends AppCompatActivity {
@@ -14,7 +15,7 @@ public class WelcomeActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_welcome);
 
-
+        startActivity(new Intent(this,MainActivity.class));
     }
 
 }
