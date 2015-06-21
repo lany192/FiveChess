@@ -23,20 +23,20 @@ import android.widget.Button;
 import android.widget.ImageView;
 import android.widget.TextView;
 
-public class SingleGameActivity extends AppCompatActivity implements OnClickListener {
+public class SingleGameActivity extends Activity implements OnClickListener {
 	private static final String TAG = "SingleGameActivity";
 	private GameView mGameView;
 	private Game mGame;
 	private Player me;
 	private Player computer;
 	private RobotAI ai;
-	// ʤ��
+	// 胜局
 	private TextView mBlackWin;
 	private TextView mWhiteWin;
-	// ��ǰ���ӷ�
+	// 当前落子方
 	private ImageView mBlackActive;
 	private ImageView mWhiteActive;
-	// ����
+	// 姓名
 	private TextView mBlackName;
 	private TextView mWhiteName;
 	// Control Button
@@ -47,12 +47,12 @@ public class SingleGameActivity extends AppCompatActivity implements OnClickList
 	private boolean isRollback;
 
 	/**
-	 * ������Ϸ�ص���Ϣ��ˢ�½���
+	 * 处理游戏回调信息，刷新界面
 	 */
 	private Handler mComputerHandler;
 
 	/**
-	 * ������Ϸ�ص���Ϣ��ˢ�½���
+	 * 处理游戏回调信息，刷新界面
 	 */
 	private Handler mRefreshHandler = new Handler() {
 
@@ -60,29 +60,29 @@ public class SingleGameActivity extends AppCompatActivity implements OnClickList
 		public void handleMessage(Message msg) {
 			Log.d(TAG, "refresh action=" + msg.what);
 			switch (msg.what) {
-			case GameConstants.GAME_OVER:
-				if (msg.arg1 == Game.BLACK) {
-					showWinDialog("�ڷ�ʤ��");
-					me.win();
-				} else if (msg.arg1 == Game.WHITE) {
-					showWinDialog("�׷�ʤ��");
-					computer.win();
-				}
-				updateScore(me, computer);
-				break;
-			case GameConstants.ACTIVE_CHANGE:
-				updateActive(mGame);
-				break;
-			case GameConstants.ADD_CHESS:
-				updateActive(mGame);
-				if (mGame.getActive() == computer.getType()) {
-					mComputerHandler.sendEmptyMessage(0);
-				}
-				break;
-			default:
-				break;
+				case GameConstants.GAME_OVER:
+					if (msg.arg1 == Game.BLACK) {
+						showWinDialog("黑方胜！");
+						me.win();
+					} else if (msg.arg1 == Game.WHITE) {
+						showWinDialog("白方胜！");
+						computer.win();
+					}
+					updateScore(me, computer);
+					break;
+				case GameConstants.ACTIVE_CHANGE:
+					updateActive(mGame);
+					break;
+				case GameConstants.ADD_CHESS:
+					updateActive(mGame);
+					if (mGame.getActive() == computer.getType()) {
+						mComputerHandler.sendEmptyMessage(0);
+					}
+					break;
+				default:
+					break;
 			}
-		}
+		};
 	};
 
 	@Override
@@ -154,7 +154,7 @@ public class SingleGameActivity extends AppCompatActivity implements OnClickList
 		AlertDialog.Builder b = new AlertDialog.Builder(this);
 		b.setCancelable(false);
 		b.setMessage(message);
-		b.setPositiveButton("����", new DialogInterface.OnClickListener() {
+		b.setPositiveButton("继续", new DialogInterface.OnClickListener() {
 
 			@Override
 			public void onClick(DialogInterface dialog, int which) {
@@ -162,7 +162,7 @@ public class SingleGameActivity extends AppCompatActivity implements OnClickList
 				mGameView.drawGame();
 			}
 		});
-		b.setNegativeButton("�˳�", new DialogInterface.OnClickListener() {
+		b.setNegativeButton("退出", new DialogInterface.OnClickListener() {
 
 			@Override
 			public void onClick(DialogInterface dialog, int which) {
@@ -175,27 +175,27 @@ public class SingleGameActivity extends AppCompatActivity implements OnClickList
 	@Override
 	public void onClick(View v) {
 		switch (v.getId()) {
-		case R.id.restart:
-			mGame.reset();
-			updateActive(mGame);
-			updateScore(me, computer);
-			mGameView.drawGame();
-			break;
-		case R.id.rollback:
-			if (mGame.getActive() != me.getType()) {
-				isRollback = true;
-			} else {
-				rollback();
-			}
-			break;
-		case R.id.about:
+			case R.id.restart:
+				mGame.reset();
+				updateActive(mGame);
+				updateScore(me, computer);
+				mGameView.drawGame();
+				break;
+			case R.id.rollback:
+				if (mGame.getActive() != me.getType()) {
+					isRollback = true;
+				} else {
+					rollback();
+				}
+				break;
+			case R.id.about:
 
-			break;
-		case R.id.setting:
+				break;
+			case R.id.setting:
 
-			break;
-		default:
-			break;
+				break;
+			default:
+				break;
 		}
 
 	}
