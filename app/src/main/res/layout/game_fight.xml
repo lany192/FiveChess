@@ -2,31 +2,22 @@
 <RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
-    android:layout_height="match_parent" >
+    android:layout_height="match_parent"
+    android:padding="16dp">
 
     <!-- Game area -->
-
-    <RelativeLayout
-        android:id="@+id/game_area"
+    <com.lany.fivechess.game.GameView
+        android:id="@+id/game_view"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_centerInParent="true"
-        android:layout_marginLeft="10dp"
-        android:layout_marginRight="10dp" >
-
-        <com.lany.fivechess.game.GameView
-            android:id="@+id/game_view"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_centerInParent="true" />
-    </RelativeLayout>
+        android:layout_centerInParent="true" />
 
     <!-- Score area -->
 
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="match_parent"
-        android:layout_above="@id/game_area"
+        android:layout_above="@id/game_view"
         android:baselineAligned="false"
         android:orientation="horizontal"
         android:paddingLeft="20dp"
@@ -129,7 +120,7 @@
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_below="@id/game_area"
+        android:layout_below="@id/game_view"
         android:layout_centerHorizontal="true"
         android:layout_marginTop="20dp"
         android:orientation="horizontal" >

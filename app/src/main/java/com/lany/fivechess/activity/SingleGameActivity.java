@@ -55,41 +55,6 @@ public class SingleGameActivity extends AppCompatActivity implements OnClickList
      */
     private Handler mComputerHandler;
 
-    /**
-     * 处理游戏回调信息，刷新界面
-     */
-    private Handler mRefreshHandler = new Handler() {
-
-        @Override
-        public void handleMessage(Message msg) {
-            Log.d(TAG, "refresh action=" + msg.what);
-            switch (msg.what) {
-                case GameConstants.GAME_OVER:
-                    if (msg.arg1 == Game.BLACK) {
-                        showWinDialog("黑方胜！");
-                        me.win();
-                    } else if (msg.arg1 == Game.WHITE) {
-                        showWinDialog("白方胜！");
-                        computer.win();
-                    }
-                    updateScore(me, computer);
-                    break;
-                case GameConstants.ACTIVE_CHANGE:
-                    updateActive(mGame);
-                    break;
-                case GameConstants.ADD_CHESS:
-                    updateActive(mGame);
-                    if (mGame.getActive() == computer.getType()) {
-                        mComputerHandler.sendEmptyMessage(0);
-                    }
-                    break;
-                default:
-                    break;
-            }
-        }
-
-        ;
-    };
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -101,6 +66,7 @@ public class SingleGameActivity extends AppCompatActivity implements OnClickList
     }
 
     private void initViews() {
+
         mGameView = (GameView) findViewById(R.id.game_view);
         mBlackName = (TextView) findViewById(R.id.black_name);
         mBlackWin = (TextView) findViewById(R.id.black_win);
@@ -149,6 +115,43 @@ public class SingleGameActivity extends AppCompatActivity implements OnClickList
         mBlackWin.setText(black.getWin());
         mWhiteWin.setText(white.getWin());
     }
+
+
+    /**
+     * 处理游戏回调信息，刷新界面
+     */
+    private Handler mRefreshHandler = new Handler() {
+
+        @Override
+        public void handleMessage(Message msg) {
+            Log.d(TAG, "refresh action=" + msg.what);
+            switch (msg.what) {
+                case GameConstants.GAME_OVER:
+                    if (msg.arg1 == Game.BLACK) {
+                        showWinDialog("黑方胜！");
+                        me.win();
+                    } else if (msg.arg1 == Game.WHITE) {
+                        showWinDialog("白方胜！");
+                        computer.win();
+                    }
+                    updateScore(me, computer);
+                    break;
+                case GameConstants.ACTIVE_CHANGE:
+                    updateActive(mGame);
+                    break;
+                case GameConstants.ADD_CHESS:
+                    updateActive(mGame);
+                    if (mGame.getActive() == computer.getType()) {
+                        mComputerHandler.sendEmptyMessage(0);
+                    }
+                    break;
+                default:
+                    break;
+            }
+        }
+
+        ;
+    };
 
     @Override
     protected void onDestroy() {

@@ -2,35 +2,29 @@
 <RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
-    android:layout_height="match_parent" >
+    android:layout_height="match_parent"
+    android:padding="16dp">
 
     <!-- Game area -->
 
-    <LinearLayout
-        android:id="@+id/game_area"
+
+    <com.lany.fivechess.game.GameView
+        android:id="@+id/game_view"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_centerInParent="true"
-        android:layout_marginLeft="10dp"
-        android:layout_marginRight="10dp"
-        android:gravity="center" >
+        android:layout_centerInParent="true" />
 
-        <com.lany.fivechess.game.GameView
-            android:id="@+id/game_view"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content" />
-    </LinearLayout>
 
     <!-- Score area -->
 
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="match_parent"
-        android:layout_above="@id/game_area"
+        android:layout_above="@id/game_view"
         android:baselineAligned="false"
         android:orientation="horizontal"
         android:paddingLeft="20dp"
-        android:paddingRight="20dp" >
+        android:paddingRight="20dp">
 
         <LinearLayout
             android:id="@+id/black_area"
@@ -38,7 +32,7 @@
             android:layout_height="wrap_content"
             android:layout_gravity="center_vertical"
             android:layout_weight="2"
-            android:orientation="horizontal" >
+            android:orientation="horizontal">
 
             <ImageView
                 android:layout_width="wrap_content"
@@ -84,7 +78,7 @@
             android:id="@+id/white_area"
             android:layout_width="0dp"
             android:layout_height="match_parent"
-            android:layout_weight="2" >
+            android:layout_weight="2">
 
             <ImageView
                 android:id="@+id/white_chess"
@@ -129,11 +123,11 @@
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_below="@id/game_area"
+        android:layout_below="@id/game_view"
         android:layout_centerHorizontal="true"
         android:layout_marginTop="20dp"
         android:paddingLeft="20dp"
-        android:paddingRight="20dp" >
+        android:paddingRight="20dp">
 
         <Button
             android:id="@+id/restart"
