@@ -23,7 +23,7 @@ import android.widget.Button;
 import android.widget.ImageView;
 import android.widget.TextView;
 
-public class SingleGameActivity extends Activity implements OnClickListener {
+public class SingleGameActivity extends AppCompatActivity implements OnClickListener {
 	private static final String TAG = "SingleGameActivity";
 	private GameView mGameView;
 	private Game mGame;
