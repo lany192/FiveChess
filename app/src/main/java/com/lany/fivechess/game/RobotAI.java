@@ -51,8 +51,6 @@ public class RobotAI {
 
 	/**
 	 * 更新棋盘权值
-	 *
-	 * @param game
 	 */
 	public void updateValue(int[][] map) {
 		int[] computerValue = { 0, 0, 0, 0 };

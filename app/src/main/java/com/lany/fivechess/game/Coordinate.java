@@ -1,7 +1,7 @@
 package com.lany.fivechess.game;
 
 /**
- * �����
+ * 坐标类
  */
 public class Coordinate {
 	public int x;

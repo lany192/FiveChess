@@ -30,4 +30,7 @@
     <string name="setting">Setting</string>
     <string name="ok">OK</string>
     <string name="Continue">Continue</string>
+    <string name="scan_hint">搜索链接相同wifi的顽疾（要链接同一个Wifi才能搜索到）</string>
+    <string name="game_player">GamePlayer</string>
+    <string name="scan_loading">扫描中，请稍后......</string>
 </resources>
