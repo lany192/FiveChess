@@ -1,8 +1,10 @@
 package com.lany.fivechess.activity;
 
+import android.content.DialogInterface;
 import android.content.Intent;
 import android.support.v7.app.ActionBarActivity;
 import android.os.Bundle;
+import android.support.v7.app.AlertDialog;
 import android.support.v7.app.AppCompatActivity;
 import android.view.Menu;
 import android.view.MenuItem;
@@ -56,9 +58,24 @@ public class MainActivity extends BaseActivity {
 
             @Override
             public void onClick(View v) {
-                Toast.makeText(getApplicationContext(), "关于", Toast.LENGTH_SHORT).show();
+                showAboutDialog();
             }
         });
+    }
+
+    private void showAboutDialog() {
+        AlertDialog.Builder b = new AlertDialog.Builder(this);
+        b.setTitle(R.string.about);
+        b.setMessage("欢迎访问源代码\nhttps://github.com/lany192/FiveChess");
+        b.setPositiveButton(R.string.ok,
+                new DialogInterface.OnClickListener() {
+
+                    @Override
+                    public void onClick(DialogInterface dialog, int which) {
+
+                    }
+                });
+        b.show();
     }
 
 }
