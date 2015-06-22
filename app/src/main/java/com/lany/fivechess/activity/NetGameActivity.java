@@ -33,7 +33,7 @@ import android.widget.ImageView;
 import android.widget.TextView;
 import android.widget.Toast;
 
-public class NetGameActivity extends AppCompatActivity implements OnClickListener {
+public class NetGameActivity extends BaseActivity implements OnClickListener {
     private static final String TAG = "GameActivity";
     private GameView mGameView;
     private Game mGame;
@@ -72,9 +72,12 @@ public class NetGameActivity extends AppCompatActivity implements OnClickListene
     }
 
     @Override
-    public void onCreate(Bundle savedInstanceState) {
-        super.onCreate(savedInstanceState);
-        setContentView(R.layout.game_net);
+    protected int getLayoutId() {
+        return R.layout.game_net;
+    }
+
+    @Override
+    protected void init(Bundle savedInstanceState) {
         Bundle b = getIntent().getExtras();
         if (b == null) {
             Toast.makeText(this, "建立网络失败,请重试", Toast.LENGTH_SHORT).show();
@@ -87,6 +90,7 @@ public class NetGameActivity extends AppCompatActivity implements OnClickListene
         initViews();
         initGame();
     }
+
 
     /**
      * 处理游戏回调信息，刷新界面

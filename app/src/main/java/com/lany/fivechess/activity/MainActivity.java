@@ -11,13 +11,19 @@ import android.view.View;
 import com.lany.fivechess.R;
 
 
-public class MainActivity extends AppCompatActivity {
-
+public class MainActivity extends BaseActivity {
+    @Override
+    protected boolean hasBackButton() {
+        return false;
+    }
 
     @Override
-    protected void onCreate(Bundle savedInstanceState) {
-        super.onCreate(savedInstanceState);
-        setContentView(R.layout.activity_main);
+    protected int getLayoutId() {
+        return R.layout.activity_main;
+    }
+
+    @Override
+    protected void init(Bundle savedInstanceState) {
         findViewById(R.id.new_game).setOnClickListener(new View.OnClickListener() {
 
             @Override
@@ -45,4 +51,5 @@ public class MainActivity extends AppCompatActivity {
             }
         });
     }
+
 }

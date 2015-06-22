@@ -3,19 +3,23 @@ package com.lany.fivechess.activity;
 import android.content.Intent;
 import android.os.Bundle;
 import android.os.Handler;
-import android.support.v7.app.AppCompatActivity;
 
 import com.lany.fivechess.R;
-import com.lany.fivechess.activity.MainActivity;
 
 
-public class WelcomeActivity extends AppCompatActivity {
+public class WelcomeActivity extends BaseActivity {
+    @Override
+    protected boolean hasActionBar() {
+        return false;
+    }
 
     @Override
-    protected void onCreate(Bundle savedInstanceState) {
-        super.onCreate(savedInstanceState);
-        setContentView(R.layout.activity_welcome);
+    protected int getLayoutId() {
+        return R.layout.activity_welcome;
+    }
 
+    @Override
+    protected void init(Bundle savedInstanceState) {
         new Handler().postDelayed(new Runnable() {
             @Override
             public void run() {
@@ -24,5 +28,7 @@ public class WelcomeActivity extends AppCompatActivity {
             }
         }, 2000);
     }
+
+
 
 }

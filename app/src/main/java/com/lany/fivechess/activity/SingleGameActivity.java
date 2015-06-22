@@ -27,7 +27,7 @@ import android.widget.TextView;
 /**
  * 人机对战
  */
-public class SingleGameActivity extends AppCompatActivity implements OnClickListener {
+public class SingleGameActivity extends BaseActivity implements OnClickListener {
     private static final String TAG = "SingleGameActivity";
     private GameView mGameView;
     private Game mGame;
@@ -57,13 +57,18 @@ public class SingleGameActivity extends AppCompatActivity implements OnClickList
 
 
     @Override
-    protected void onCreate(Bundle savedInstanceState) {
-        super.onCreate(savedInstanceState);
-        setContentView(R.layout.game_single);
+    protected int getLayoutId() {
+        return R.layout.game_single;
+    }
+
+
+    @Override
+    protected void init(Bundle savedInstanceState) {
         initViews();
         initGame();
         initComputer();
     }
+
 
     private void initViews() {
 

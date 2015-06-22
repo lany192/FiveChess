@@ -33,7 +33,7 @@ import com.lany.fivechess.net.ConnectConstants;
 import com.lany.fivechess.net.ConnectionItem;
 import com.lany.fivechess.net.ConnnectingService;
 
-public class ConnectionActivity extends AppCompatActivity implements OnClickListener {
+public class ConnectionActivity extends BaseActivity implements OnClickListener {
     public static final String TAG = "ConnectionActivity";
     private List<ConnectionItem> mConnections = new ArrayList<>();
     private ListView mListView;
@@ -52,14 +52,19 @@ public class ConnectionActivity extends AppCompatActivity implements OnClickList
 
 
     @Override
-    protected void onCreate(Bundle savedInstanceState) {
-        super.onCreate(savedInstanceState);
-        setContentView(R.layout.activity_connect);
+    protected int getLayoutId() {
+        return R.layout.activity_connect;
+    }
+
+    @Override
+    protected void init(Bundle savedInstanceState) {
         mScanDialog=new ProgressDialog(this);
         mScanDialog.setMessage(getString(R.string.scan_loading));
         initView();
         initNet();
     }
+
+
 
     /**
      * 处理网络回调信息，刷新界面

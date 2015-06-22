@@ -20,7 +20,7 @@ import android.widget.Button;
 import android.widget.ImageView;
 import android.widget.TextView;
 
-public class FightGameActivity extends AppCompatActivity implements OnClickListener {
+public class FightGameActivity extends BaseActivity implements OnClickListener {
     private static final String TAG = "FightGameActivity";
     private GameView mGameView = null;
     private Game mGame;
@@ -63,13 +63,19 @@ public class FightGameActivity extends AppCompatActivity implements OnClickListe
         }
     };
 
+
     @Override
-    protected void onCreate(Bundle savedInstanceState) {
-        super.onCreate(savedInstanceState);
-        setContentView(R.layout.game_fight);
+    protected int getLayoutId() {
+        return R.layout.game_fight;
+    }
+
+    @Override
+    protected void init(Bundle savedInstanceState) {
         initViews();
         initGame();
     }
+
+
 
     private void initViews() {
         mGameView = (GameView) findViewById(R.id.game_view);
