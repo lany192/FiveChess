@@ -42,32 +42,34 @@ public abstract class BaseActivity extends AppCompatActivity implements
 
     private void initActionBar() {
         mActionBar = getSupportActionBar();
+        if(mActionBar!=null) {
 //		mActionBar.setBackgroundDrawable(getResources().getDrawable(
 //				R.color.actionbar_bg));
-        mActionBar.setDisplayShowTitleEnabled(true);
-        mActionBar.setDisplayUseLogoEnabled(true);
-        if (hasBackButton()) {
-            mActionBar.setDisplayShowHomeEnabled(false);
-            mActionBar.setDisplayHomeAsUpEnabled(true);
-            // mActionBar.setHomeAsUpIndicator(R.drawable.ic_launcher);
-        }
-        if (hasActionBarCustomView()) {
-            mActionBar.setDisplayShowCustomEnabled(true);
-            int layoutRes = getActionBarCustomViewLayoutRescId();
-            View actionBarView = inflateView(layoutRes);
-            LayoutParams params;
-            if (isAllActionBarCustom()) {
-                // XLog.i(TAG, "全部自定义");
-                params = new LayoutParams(LayoutParams.MATCH_PARENT,
-                        LayoutParams.MATCH_PARENT);
-            } else {
-                // XLog.i(TAG, "右边自定义");
-                params = new LayoutParams(LayoutParams.WRAP_CONTENT,
-                        LayoutParams.MATCH_PARENT);
-                params.gravity = Gravity.RIGHT;
+            mActionBar.setDisplayShowTitleEnabled(true);
+            mActionBar.setDisplayUseLogoEnabled(true);
+            if (hasBackButton()) {
+                mActionBar.setDisplayShowHomeEnabled(false);
+                mActionBar.setDisplayHomeAsUpEnabled(true);
+                // mActionBar.setHomeAsUpIndicator(R.drawable.ic_launcher);
             }
-            mActionBar.setCustomView(actionBarView, params);
-            handlerActionBarCustomViewAction(actionBarView);
+            if (hasActionBarCustomView()) {
+                mActionBar.setDisplayShowCustomEnabled(true);
+                int layoutRes = getActionBarCustomViewLayoutRescId();
+                View actionBarView = inflateView(layoutRes);
+                LayoutParams params;
+                if (isAllActionBarCustom()) {
+                    // XLog.i(TAG, "全部自定义");
+                    params = new LayoutParams(LayoutParams.MATCH_PARENT,
+                            LayoutParams.MATCH_PARENT);
+                } else {
+                    // XLog.i(TAG, "右边自定义");
+                    params = new LayoutParams(LayoutParams.WRAP_CONTENT,
+                            LayoutParams.MATCH_PARENT);
+                    params.gravity = Gravity.RIGHT;
+                }
+                mActionBar.setCustomView(actionBarView, params);
+                handlerActionBarCustomViewAction(actionBarView);
+            }
         }
     }
 
@@ -96,13 +98,13 @@ public abstract class BaseActivity extends AppCompatActivity implements
         onBackPressed();
     }
 
-    public void setActionBarTitle(int resId) {
+    protected void setActionBarTitle(int resId) {
         if (resId != 0) {
             setActionBarTitle(getString(resId));
         }
     }
 
-    public void setActionBarTitle(String title) {
+    protected void setActionBarTitle(String title) {
         if (hasActionBar()) {
             mActionBar.setTitle(title);
         }

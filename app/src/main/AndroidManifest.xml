@@ -23,10 +23,6 @@
             android:name=".activity.MainActivity"
             android:label="@string/title_activity_main" >
         </activity>
-        <activity
-            android:name=".activity.GameActivity"
-            android:label="@string/title_activity_game" >
-        </activity>
         <activity android:name=".activity.ConnectionActivity"
             android:label="@string/connections">
         </activity>

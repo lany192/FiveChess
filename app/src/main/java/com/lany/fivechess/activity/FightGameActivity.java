@@ -35,8 +35,6 @@ public class FightGameActivity extends BaseActivity implements OnClickListener {
     // Control Button
     private Button restart;
     private Button rollback;
-    private Button about;
-    private Button setting;
 
     private Handler mRefreshHandler = new Handler() {
 
@@ -85,12 +83,8 @@ public class FightGameActivity extends BaseActivity implements OnClickListener {
         mWhiteActive = (ImageView) findViewById(R.id.white_active);
         restart = (Button) findViewById(R.id.restart);
         rollback = (Button) findViewById(R.id.rollback);
-        about = (Button) findViewById(R.id.about);
-        setting = (Button) findViewById(R.id.setting);
         restart.setOnClickListener(this);
         rollback.setOnClickListener(this);
-        about.setOnClickListener(this);
-        setting.setOnClickListener(this);
     }
 
     private void initGame() {
@@ -155,12 +149,6 @@ public class FightGameActivity extends BaseActivity implements OnClickListener {
                 mGame.rollback();
                 updateActive(mGame);
                 mGameView.drawGame();
-                break;
-            case R.id.about:
-
-                break;
-            case R.id.setting:
-
                 break;
             default:
                 break;

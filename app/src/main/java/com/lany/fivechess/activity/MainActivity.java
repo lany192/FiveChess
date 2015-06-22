@@ -7,6 +7,7 @@ import android.support.v7.app.AppCompatActivity;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
+import android.widget.Toast;
 
 import com.lany.fivechess.R;
 
@@ -48,6 +49,14 @@ public class MainActivity extends BaseActivity {
             public void onClick(View v) {
                 startActivity(new Intent(MainActivity.this,
                         ConnectionActivity.class));
+            }
+        });
+
+        findViewById(R.id.conn_about).setOnClickListener(new View.OnClickListener() {
+
+            @Override
+            public void onClick(View v) {
+                Toast.makeText(getApplicationContext(), "关于", Toast.LENGTH_SHORT).show();
             }
         });
     }

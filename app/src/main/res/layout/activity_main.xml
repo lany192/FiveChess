@@ -1,5 +1,5 @@
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
-    xmlns:tools="http://schemas.android.com/tools"
+
     android:layout_width="fill_parent"
     android:layout_height="fill_parent"
     android:gravity="center"
@@ -34,5 +34,13 @@
         android:padding="8dp"
         android:text="@string/fight_connection"
         android:textSize="16sp" />
-
+    <Button
+        android:id="@+id/conn_about"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_margin="8dp"
+        android:background="@drawable/btn_white_style"
+        android:padding="8dp"
+        android:text="@string/about"
+        android:textSize="16sp" />
 </LinearLayout>
