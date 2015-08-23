@@ -7,7 +7,7 @@ import android.os.Handler;
 import com.lany.fivechess.R;
 
 
-public class WelcomeActivity extends BaseActivity {
+public class SplashActivity extends BaseActivity {
     @Override
     protected boolean hasActionBar() {
         return false;
@@ -23,7 +23,7 @@ public class WelcomeActivity extends BaseActivity {
         new Handler().postDelayed(new Runnable() {
             @Override
             public void run() {
-                startActivity(new Intent(WelcomeActivity.this, MainActivity.class));
+                startActivity(new Intent(SplashActivity.this, MainActivity.class));
                 finish();
             }
         }, 2000);

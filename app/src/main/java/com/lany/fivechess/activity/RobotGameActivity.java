@@ -27,8 +27,7 @@ import android.widget.TextView;
 /**
  * 人机对战
  */
-public class SingleGameActivity extends BaseActivity implements OnClickListener {
-    private static final String TAG = "SingleGameActivity";
+public class RobotGameActivity extends BaseActivity implements OnClickListener {
     private GameView mGameView;
     private Game mGame;
     private Player me;

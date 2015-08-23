@@ -20,8 +20,7 @@ import android.widget.Button;
 import android.widget.ImageView;
 import android.widget.TextView;
 
-public class FightGameActivity extends BaseActivity implements OnClickListener {
-    private static final String TAG = "FightGameActivity";
+public class PersonGameActivity extends BaseActivity implements OnClickListener {
     private GameView mGameView = null;
     private Game mGame;
     private Player black;

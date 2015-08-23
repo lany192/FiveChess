@@ -5,7 +5,7 @@ import junit.framework.TestCase;
 /**
  * Created by lany on 15/6/21.
  */
-public class SingleGameActivityTest extends TestCase {
+public class RobotGameActivityTest extends TestCase {
 
     public void testOnCreate() throws Exception {
 

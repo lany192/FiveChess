@@ -2,14 +2,9 @@ package com.lany.fivechess.activity;
 
 import android.content.DialogInterface;
 import android.content.Intent;
-import android.support.v7.app.ActionBarActivity;
 import android.os.Bundle;
 import android.support.v7.app.AlertDialog;
-import android.support.v7.app.AppCompatActivity;
-import android.view.Menu;
-import android.view.MenuItem;
 import android.view.View;
-import android.widget.Toast;
 
 import com.lany.fivechess.R;
 
@@ -32,7 +27,7 @@ public class MainActivity extends BaseActivity {
             @Override
             public void onClick(View v) {
                 startActivity(new Intent(MainActivity.this,
-                        SingleGameActivity.class));
+                        RobotGameActivity.class));
             }
         });
 
@@ -41,7 +36,7 @@ public class MainActivity extends BaseActivity {
             @Override
             public void onClick(View v) {
                 startActivity(new Intent(MainActivity.this,
-                        FightGameActivity.class));
+                        PersonGameActivity.class));
             }
         });
 

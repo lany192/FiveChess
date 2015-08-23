@@ -13,7 +13,6 @@ import com.lany.fivechess.game.GameView;
 import com.lany.fivechess.game.Player;
 import com.lany.fivechess.net.ConnectedService;
 
-import android.app.Activity;
 import android.app.ProgressDialog;
 import android.content.Context;
 import android.content.DialogInterface;
@@ -22,7 +21,6 @@ import android.os.Bundle;
 import android.os.Handler;
 import android.os.Message;
 import android.support.v7.app.AlertDialog;
-import android.support.v7.app.AppCompatActivity;
 import android.text.TextUtils;
 import android.util.Log;
 import android.view.MotionEvent;
@@ -33,8 +31,7 @@ import android.widget.ImageView;
 import android.widget.TextView;
 import android.widget.Toast;
 
-public class NetGameActivity extends BaseActivity implements OnClickListener {
-    private static final String TAG = "GameActivity";
+public class WifiGameActivity extends BaseActivity implements OnClickListener {
     private GameView mGameView;
     private Game mGame;
     private Player me;
@@ -63,7 +60,7 @@ public class NetGameActivity extends BaseActivity implements OnClickListener {
 
     public static void startActivity(Context context, boolean server,
                                      String dstIp) {
-        Intent intent = new Intent(context, NetGameActivity.class);
+        Intent intent = new Intent(context, WifiGameActivity.class);
         Bundle b = new Bundle();
         b.putBoolean("isServer", server);
         b.putString("ip", dstIp);
@@ -146,14 +143,14 @@ public class NetGameActivity extends BaseActivity implements OnClickListener {
                     showRollbackDialog();
                     break;
                 case ROLLBACK_AGREE:
-                    Toast.makeText(NetGameActivity.this, "对方同意悔棋",
+                    Toast.makeText(WifiGameActivity.this, "对方同意悔棋",
                             Toast.LENGTH_SHORT).show();
                     rollback();
                     isRequest = false;
                     break;
                 case ROLLBACK_REJECT:
                     isRequest = false;
-                    Toast.makeText(NetGameActivity.this, "对方拒绝了你的请求",
+                    Toast.makeText(WifiGameActivity.this, "对方拒绝了你的请求",
                             Toast.LENGTH_LONG).show();
                     break;
                 default:

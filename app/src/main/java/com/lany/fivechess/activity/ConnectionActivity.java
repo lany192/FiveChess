@@ -3,7 +3,6 @@ package com.lany.fivechess.activity;
 import java.util.ArrayList;
 import java.util.List;
 
-import android.app.Activity;
 import android.app.Dialog;
 import android.app.ProgressDialog;
 import android.content.Context;
@@ -14,7 +13,6 @@ import android.os.Bundle;
 import android.os.Handler;
 import android.os.Message;
 import android.support.v7.app.AlertDialog;
-import android.support.v7.app.AppCompatActivity;
 import android.text.TextUtils;
 import android.util.Log;
 import android.view.View;
@@ -107,7 +105,7 @@ public class ConnectionActivity extends BaseActivity implements OnClickListener 
                         waitDialog.dismiss();
                     }
                     String ip = msg.peekData().getString("ip");
-                    NetGameActivity.startActivity(ConnectionActivity.this, false, ip);
+                    WifiGameActivity.startActivity(ConnectionActivity.this, false, ip);
                     break;
                 case ConnectConstants.CONNECT_REJECT:
                     if (waitDialog != null && waitDialog.isShowing()) {
@@ -239,7 +237,7 @@ public class ConnectionActivity extends BaseActivity implements OnClickListener 
                 switch (which) {
                     case DialogInterface.BUTTON_POSITIVE:
                         mCM.accept(ip);
-                        NetGameActivity.startActivity(ConnectionActivity.this, true, ip);
+                        WifiGameActivity.startActivity(ConnectionActivity.this, true, ip);
                         break;
                     case DialogInterface.BUTTON_NEGATIVE:
                         mCM.reject(ip);
