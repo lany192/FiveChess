@@ -29,6 +29,7 @@ import android.widget.TextView;
  */
 public class RobotGameActivity extends BaseActivity implements OnClickListener {
     private GameView mGameView;
+
     private Game mGame;
     private Player me;
     private Player computer;

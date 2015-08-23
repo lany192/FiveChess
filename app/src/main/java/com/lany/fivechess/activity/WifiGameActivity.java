@@ -40,6 +40,7 @@ public class WifiGameActivity extends BaseActivity implements OnClickListener {
     private TextView mBlackWin;
     private TextView mWhiteWin;
     // 当前落子方
+
     private ImageView mBlackActive;
     private ImageView mWhiteActive;
     // 姓名

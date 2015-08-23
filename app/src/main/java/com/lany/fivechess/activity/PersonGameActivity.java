@@ -28,6 +28,7 @@ public class PersonGameActivity extends BaseActivity implements OnClickListener 
     private TextView mBlackWin;
     private TextView mWhiteWin;
 
+
     private ImageView mBlackActive;
     private ImageView mWhiteActive;
 

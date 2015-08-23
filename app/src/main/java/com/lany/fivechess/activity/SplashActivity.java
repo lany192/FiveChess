@@ -18,6 +18,7 @@ public class SplashActivity extends BaseActivity {
         return R.layout.activity_welcome;
     }
 
+
     @Override
     protected void init(Bundle savedInstanceState) {
         new Handler().postDelayed(new Runnable() {

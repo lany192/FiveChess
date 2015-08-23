@@ -54,6 +54,7 @@ public class ConnectionActivity extends BaseActivity implements OnClickListener 
         return R.layout.activity_connect;
     }
 
+
     @Override
     protected void init(Bundle savedInstanceState) {
         mScanDialog=new ProgressDialog(this);
