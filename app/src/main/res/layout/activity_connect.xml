@@ -15,13 +15,13 @@
     <Button
         android:id="@+id/scan"
         android:layout_width="fill_parent"
-        android:layout_height="wrap_content"
+        android:layout_height="40dp"
         android:layout_marginTop="8dp"
         android:layout_marginBottom="8dp"
         android:background="@drawable/btn_white_style"
         android:padding="8dp"
         android:text="@string/scan"
-        android:textSize="16sp" />
+        android:textSize="14sp" />
 
     <ListView
         android:id="@+id/list"

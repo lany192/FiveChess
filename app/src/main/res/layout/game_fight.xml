@@ -131,20 +131,22 @@
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:layout_margin="8dp"
-                android:background="@drawable/btn_white_style"
-                android:padding="8dp"
+                android:background="@drawable/btn_circle_style"
+                android:padding="16dp"
+                android:textColor="@android:color/white"
                 android:text="@string/restart"
-                android:textSize="16sp" />
+                android:textSize="14sp" />
 
             <Button
                 android:id="@+id/rollback"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:layout_margin="8dp"
-                android:background="@drawable/btn_white_style"
-                android:padding="8dp"
+                android:background="@drawable/btn_circle_style"
+                android:padding="16dp"
+                android:textColor="@android:color/white"
                 android:text="@string/rollback"
-                android:textSize="16sp" />
+                android:textSize="14sp" />
 
 
         </LinearLayout>

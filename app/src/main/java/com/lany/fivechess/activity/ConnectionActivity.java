@@ -1,8 +1,5 @@
 package com.lany.fivechess.activity;
 
-import java.util.ArrayList;
-import java.util.List;
-
 import android.app.Dialog;
 import android.app.ProgressDialog;
 import android.content.Context;
@@ -31,8 +28,10 @@ import com.lany.fivechess.net.ConnectConstants;
 import com.lany.fivechess.net.ConnectionItem;
 import com.lany.fivechess.net.ConnnectingService;
 
+import java.util.ArrayList;
+import java.util.List;
+
 public class ConnectionActivity extends BaseActivity implements OnClickListener {
-    public static final String TAG = "ConnectionActivity";
     private List<ConnectionItem> mConnections = new ArrayList<>();
     private ListView mListView;
     private ConnectionAdapter mAdapter;

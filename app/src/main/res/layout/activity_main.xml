@@ -1,46 +1,50 @@
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
-
     android:layout_width="fill_parent"
     android:layout_height="fill_parent"
     android:gravity="center"
-    android:orientation="vertical" >
+    android:orientation="vertical">
 
     <Button
         android:id="@+id/new_game"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_margin="8dp"
-        android:background="@drawable/btn_white_style"
-        android:padding="8dp"
+        android:background="@drawable/btn_circle_style"
+        android:padding="16dp"
+        android:textColor="@android:color/white"
         android:text="@string/new_game"
-        android:textSize="16sp" />
+        android:textSize="14sp" />
 
     <Button
         android:id="@+id/fight"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_margin="8dp"
-        android:background="@drawable/btn_white_style"
+        android:background="@drawable/btn_circle_style"
         android:padding="8dp"
+        android:textColor="@android:color/white"
         android:text="@string/fight"
-        android:textSize="16sp" />
+        android:textSize="14sp" />
 
     <Button
         android:id="@+id/conn_fight"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_margin="8dp"
-        android:background="@drawable/btn_white_style"
+        android:background="@drawable/btn_circle_style"
         android:padding="8dp"
+        android:textColor="@android:color/white"
         android:text="@string/fight_connection"
-        android:textSize="16sp" />
+        android:textSize="14sp" />
+
     <Button
         android:id="@+id/conn_about"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_margin="8dp"
-        android:background="@drawable/btn_white_style"
+        android:background="@drawable/btn_circle_style"
         android:padding="8dp"
+        android:textColor="@android:color/white"
         android:text="@string/about"
-        android:textSize="16sp" />
+        android:textSize="14sp" />
 </LinearLayout>
