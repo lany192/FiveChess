@@ -13,7 +13,7 @@ import com.lany.fivechess.R;
 import com.lany.fivechess.net.ChatContent;
 
 public class ChatAdapter extends BaseAdapter {
-	private List<ChatContent> mData = new ArrayList<ChatContent>();
+	private List<ChatContent> mData = new ArrayList<>();
 	private Context mContext;
 
 	public ChatAdapter(Context context, List<ChatContent> data) {

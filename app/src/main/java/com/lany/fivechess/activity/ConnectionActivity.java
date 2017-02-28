@@ -105,7 +105,7 @@ public class ConnectionActivity extends BaseActivity implements OnClickListener 
                         waitDialog.dismiss();
                     }
                     String ip = msg.peekData().getString("ip");
-                    WifiGameActivity.startActivity(ConnectionActivity.this, false, ip);
+                    WifiGameActivity.start(ConnectionActivity.this, false, ip);
                     break;
                 case ConnectConstants.CONNECT_REJECT:
                     if (waitDialog != null && waitDialog.isShowing()) {
@@ -237,7 +237,7 @@ public class ConnectionActivity extends BaseActivity implements OnClickListener 
                 switch (which) {
                     case DialogInterface.BUTTON_POSITIVE:
                         mCM.accept(ip);
-                        WifiGameActivity.startActivity(ConnectionActivity.this, true, ip);
+                        WifiGameActivity.start(ConnectionActivity.this, true, ip);
                         break;
                     case DialogInterface.BUTTON_NEGATIVE:
                         mCM.reject(ip);

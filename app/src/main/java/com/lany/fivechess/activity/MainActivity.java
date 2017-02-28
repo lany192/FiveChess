@@ -10,6 +10,8 @@ import com.lany.fivechess.R;
 
 
 public class MainActivity extends BaseActivity {
+
+
     @Override
     protected boolean hasBackButton() {
         return false;

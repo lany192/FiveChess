@@ -59,8 +59,7 @@ public class WifiGameActivity extends BaseActivity implements OnClickListener {
     private ProgressDialog waitDialog;
     private boolean isRequest;
 
-    public static void startActivity(Context context, boolean server,
-                                     String dstIp) {
+    public static void start(Context context, boolean server,String dstIp) {
         Intent intent = new Intent(context, WifiGameActivity.class);
         Bundle b = new Bundle();
         b.putBoolean("isServer", server);

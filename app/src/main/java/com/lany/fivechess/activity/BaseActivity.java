@@ -12,6 +12,8 @@ import android.view.MenuItem;
 import android.view.View;
 import android.view.View.OnClickListener;
 
+import butterknife.ButterKnife;
+
 public abstract class BaseActivity extends AppCompatActivity implements
         OnClickListener {
     protected String TAG = this.getClass().getSimpleName();
@@ -30,6 +32,7 @@ public abstract class BaseActivity extends AppCompatActivity implements
         onBeforeSetContentView();
         if (getLayoutId() != 0) {
             setContentView(getLayoutId());
+            ButterKnife.bind(this);
         }
         mInflater = getLayoutInflater();// 要在initActionBar之前
 
