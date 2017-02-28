@@ -33,7 +33,7 @@
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:layout_gravity="center_vertical"
-                    android:src="@drawable/black_large" />
+                    android:src="@drawable/black_chess" />
 
                 <TextView
                     android:id="@+id/black_name"
@@ -49,7 +49,7 @@
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:layout_gravity="center_vertical"
-                    android:src="@drawable/black_active" />
+                    android:src="@drawable/finger" />
 
                 <TextView
                     android:id="@+id/black_win"
@@ -81,7 +81,7 @@
                     android:layout_height="wrap_content"
                     android:layout_alignParentRight="true"
                     android:layout_centerVertical="true"
-                    android:src="@drawable/white_large" />
+                    android:src="@drawable/red_chess" />
 
                 <TextView
                     android:id="@+id/white_name"
@@ -99,7 +99,7 @@
                     android:layout_height="wrap_content"
                     android:layout_centerVertical="true"
                     android:layout_toLeftOf="@id/white_name"
-                    android:src="@drawable/white_active" />
+                    android:src="@drawable/finger" />
 
                 <TextView
                     android:id="@+id/white_win"
