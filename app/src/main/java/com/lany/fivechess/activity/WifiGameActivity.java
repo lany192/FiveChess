@@ -8,7 +8,7 @@ import static com.lany.fivechess.net.ConnectConstants.ROLLBACK_REJECT;
 
 import com.lany.fivechess.R;
 import com.lany.fivechess.game.Game;
-import com.lany.fivechess.game.GameConstants;
+import com.lany.fivechess.game.Constants;
 import com.lany.fivechess.game.GameView;
 import com.lany.fivechess.game.Player;
 import com.lany.fivechess.net.ConnectedService;
@@ -98,7 +98,7 @@ public class WifiGameActivity extends BaseActivity implements OnClickListener {
         public void handleMessage(Message msg) {
             Log.d(TAG, "refresh action=" + msg.what);
             switch (msg.what) {
-                case GameConstants.GAME_OVER:
+                case Constants.GAME_OVER:
                     if (msg.arg1 == me.getType()) {
                         showWinDialog("恭喜你！你赢了！");
                         me.win();
@@ -110,7 +110,7 @@ public class WifiGameActivity extends BaseActivity implements OnClickListener {
                     }
                     updateScore(me, challenger);
                     break;
-                case GameConstants.ADD_CHESS:
+                case Constants.ADD_CHESS:
                     int x = msg.arg1;
                     int y = msg.arg2;
                     mService.addChess(x, y);
@@ -193,7 +193,7 @@ public class WifiGameActivity extends BaseActivity implements OnClickListener {
             mBlackName.setText(R.string.challenger);
         }
         mGame = new Game(mRefreshHandler, me, challenger);
-        mGame.setMode(GameConstants.MODE_NET);
+        mGame.setMode(Constants.MODE_NET);
         mGameView.setGame(mGame);
         updateActive(mGame);
         updateScore(me, challenger);

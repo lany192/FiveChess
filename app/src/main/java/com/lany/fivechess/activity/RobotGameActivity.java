@@ -2,13 +2,12 @@ package com.lany.fivechess.activity;
 
 import com.lany.fivechess.R;
 import com.lany.fivechess.game.RobotAI;
-import com.lany.fivechess.game.Coordinate;
+import com.lany.fivechess.game.Point;
 import com.lany.fivechess.game.Game;
-import com.lany.fivechess.game.GameConstants;
+import com.lany.fivechess.game.Constants;
 import com.lany.fivechess.game.GameView;
 import com.lany.fivechess.game.Player;
 
-import android.app.Activity;
 import android.content.DialogInterface;
 import android.os.Bundle;
 import android.os.Handler;
@@ -16,7 +15,6 @@ import android.os.HandlerThread;
 import android.os.Looper;
 import android.os.Message;
 import android.support.v7.app.AlertDialog;
-import android.support.v7.app.AppCompatActivity;
 import android.util.Log;
 import android.view.View;
 import android.view.View.OnClickListener;
@@ -89,7 +87,7 @@ public class RobotGameActivity extends BaseActivity implements OnClickListener {
         me = new Player(getString(R.string.myself), Game.BLACK);
         computer = new Player(getString(R.string.computer), Game.WHITE);
         mGame = new Game(mRefreshHandler, me, computer);
-        mGame.setMode(GameConstants.MODE_SINGLE);
+        mGame.setMode(Constants.MODE_SINGLE);
         mGameView.setGame(mGame);
         updateActive(mGame);
         updateScore(me, computer);
@@ -127,7 +125,7 @@ public class RobotGameActivity extends BaseActivity implements OnClickListener {
         public void handleMessage(Message msg) {
             Log.d(TAG, "refresh action=" + msg.what);
             switch (msg.what) {
-                case GameConstants.GAME_OVER:
+                case Constants.GAME_OVER:
                     if (msg.arg1 == Game.BLACK) {
                         showWinDialog("黑方胜！");
                         me.win();
@@ -137,10 +135,10 @@ public class RobotGameActivity extends BaseActivity implements OnClickListener {
                     }
                     updateScore(me, computer);
                     break;
-                case GameConstants.ACTIVE_CHANGE:
+                case Constants.ACTIVE_CHANGE:
                     updateActive(mGame);
                     break;
-                case GameConstants.ADD_CHESS:
+                case Constants.ADD_CHESS:
                     updateActive(mGame);
                     if (mGame.getActive() == computer.getType()) {
                         mComputerHandler.sendEmptyMessage(0);
@@ -218,7 +216,7 @@ public class RobotGameActivity extends BaseActivity implements OnClickListener {
         @Override
         public void handleMessage(Message msg) {
             ai.updateValue(mGame.getChessMap());
-            Coordinate c = ai.getPosition(mGame.getChessMap());
+            Point c = ai.getPosition(mGame.getChessMap());
             mGame.addChess(c, computer);
             mGameView.drawGame();
             if (isRollback) {

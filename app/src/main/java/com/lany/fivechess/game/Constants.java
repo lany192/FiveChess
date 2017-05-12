@@ -1,6 +1,6 @@
 package com.lany.fivechess.game;
 
-public class GameConstants {
+public class Constants {
 	public static final int GAME_OVER = 0;
 	public static final int ADD_CHESS = 1;
 	public static final int ACTIVE_CHANGE = 2;

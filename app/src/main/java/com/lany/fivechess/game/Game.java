@@ -14,18 +14,18 @@ public class Game {
 	public static final int SCALE_MEDIUM = 15;
 	public static final int SCALE_LARGE = 19;
 	// 自己
-	Player me;
+	private Player me;
 	// 对手
-	Player challenger;
+	private Player challenger;
 
 	private int mMode = 0;
 
 	// 默认黑子先出
 	private int mActive = 1;
-	int mGameWidth = 0;
-	int mGameHeight = 0;
-	int[][] mGameMap = null;
-	Deque<Coordinate> mActions;
+	private int mGameWidth = 0;
+	private int mGameHeight = 0;
+	private int[][] mGameMap = null;
+	private Deque<Point> mActions;
 
 	public static final int BLACK = 1;
 	public static final int WHITE = 2;
@@ -43,7 +43,7 @@ public class Game {
 		mGameWidth = width;
 		mGameHeight = height;
 		mGameMap = new int[mGameWidth][mGameHeight];
-		mActions = new LinkedList<Coordinate>();
+		mActions = new LinkedList<Point>();
 	}
 
 	public void setMode(int mode) {
@@ -60,9 +60,9 @@ public class Game {
 	 * @return 是否可以悔棋
 	 */
 	public boolean rollback() {
-		Coordinate c = mActions.pollLast();
+		Point c = mActions.pollLast();
 		if (c != null) {
-			mGameMap[c.x][c.y] = 0;
+			mGameMap[c.getX()][c.getY()] = 0;
 			changeActive();
 			return true;
 		}
@@ -97,7 +97,7 @@ public class Game {
 	 * @return 当前位置是否可以下子
 	 */
 	public boolean addChess(int x, int y) {
-		if (mMode == GameConstants.MODE_FIGHT) {
+		if (mMode == Constants.MODE_FIGHT) {
 			if (mGameMap[x][y] == 0) {
 				if (mActive == BLACK) {
 					mGameMap[x][y] = BLACK;
@@ -107,27 +107,27 @@ public class Game {
 				if (!isGameEnd(x, y, me.type)) {
 					changeActive();
 					sendAddChess(x, y);
-					mActions.add(new Coordinate(x, y));
+					mActions.add(new Point(x, y));
 				}
 				return true;
 			}
-		} else if (mMode == GameConstants.MODE_NET) {
+		} else if (mMode == Constants.MODE_NET) {
 			if (mActive == me.type && mGameMap[x][y] == 0) {
 				mGameMap[x][y] = me.type;
 				mActive = challenger.type;
 				if (!isGameEnd(x, y, me.type)) {
-					mActions.add(new Coordinate(x, y));
+					mActions.add(new Point(x, y));
 				}
 				sendAddChess(x, y);
 				return true;
 			}
-		} else if (mMode == GameConstants.MODE_SINGLE) {
+		} else if (mMode == Constants.MODE_SINGLE) {
 			if (mActive == me.type && mGameMap[x][y] == 0) {
 				mGameMap[x][y] = me.type;
 				mActive = challenger.type;
 				if (!isGameEnd(x, y, me.type)) {
 					sendAddChess(x, y);
-					mActions.add(new Coordinate(x, y));
+					mActions.add(new Point(x, y));
 				}
 				return true;
 			}
@@ -148,11 +148,11 @@ public class Game {
 	public void addChess(int x, int y, Player player) {
 		if (mGameMap[x][y] == 0) {
 			mGameMap[x][y] = player.type;
-			mActions.add(new Coordinate(x, y));
+			mActions.add(new Point(x, y));
 			boolean isEnd = isGameEnd(x, y, player.type);
 			mActive = me.type;
 			if (!isEnd) {
-				mNotify.sendEmptyMessage(GameConstants.ACTIVE_CHANGE);
+				mNotify.sendEmptyMessage(Constants.ACTIVE_CHANGE);
 			}
 		}
 	}
@@ -165,8 +165,8 @@ public class Game {
 	 * @param player
 	 *            游戏选手
 	 */
-	public void addChess(Coordinate c, Player player) {
-		addChess(c.x, c.y, player);
+	public void addChess(Point c, Player player) {
+		addChess(c.getX(), c.getY(), player);
 	}
 
 	public static int getFighter(int type) {
@@ -200,7 +200,7 @@ public class Game {
 	 *
 	 * @return mActions
 	 */
-	public Deque<Coordinate> getActions() {
+	public Deque<Point> getActions() {
 		return mActions;
 	}
 
@@ -231,7 +231,7 @@ public class Game {
 
 	private void sendAddChess(int x, int y) {
 		Message msg = new Message();
-		msg.what = GameConstants.ADD_CHESS;
+		msg.what = Constants.ADD_CHESS;
 		msg.arg1 = x;
 		msg.arg2 = y;
 		mNotify.sendMessage(msg);
@@ -329,7 +329,7 @@ public class Game {
 
 	private void sendGameResult(int player) {
 		Message msg = Message.obtain();
-		msg.what = GameConstants.GAME_OVER;
+		msg.what = Constants.GAME_OVER;
 		msg.arg1 = player;
 		mNotify.sendMessage(msg);
 	}
