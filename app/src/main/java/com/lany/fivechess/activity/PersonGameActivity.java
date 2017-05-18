@@ -2,17 +2,15 @@ package com.lany.fivechess.activity;
 
 import com.lany.fivechess.R;
 import com.lany.fivechess.game.Game;
-import com.lany.fivechess.game.GameConstants;
+import com.lany.fivechess.game.Constants;
 import com.lany.fivechess.game.GameView;
 import com.lany.fivechess.game.Player;
 
-import android.app.Activity;
 import android.content.DialogInterface;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Message;
 import android.support.v7.app.AlertDialog;
-import android.support.v7.app.AppCompatActivity;
 import android.util.Log;
 import android.view.View;
 import android.view.View.OnClickListener;
@@ -42,7 +40,7 @@ public class PersonGameActivity extends BaseActivity implements OnClickListener 
         public void handleMessage(Message msg) {
             Log.d(TAG, "refresh action=" + msg.what);
             switch (msg.what) {
-                case GameConstants.GAME_OVER:
+                case Constants.GAME_OVER:
                     if (msg.arg1 == Game.BLACK) {
                         showWinDialog("黑方�?");
                         black.win();
@@ -52,7 +50,7 @@ public class PersonGameActivity extends BaseActivity implements OnClickListener 
                     }
                     updateScore(black, white);
                     break;
-                case GameConstants.ADD_CHESS:
+                case Constants.ADD_CHESS:
                     updateActive(mGame);
                     break;
                 default:
@@ -91,7 +89,7 @@ public class PersonGameActivity extends BaseActivity implements OnClickListener 
         black = new Player(Game.BLACK);
         white = new Player(Game.WHITE);
         mGame = new Game(mRefreshHandler, black, white);
-        mGame.setMode(GameConstants.MODE_FIGHT);
+        mGame.setMode(Constants.MODE_FIGHT);
         mGameView.setGame(mGame);
         updateActive(mGame);
         updateScore(black, white);
