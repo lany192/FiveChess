@@ -104,7 +104,7 @@ public class Game {
 				} else {
 					mGameMap[x][y] = WHITE;
 				}
-				if (!isGameEnd(x, y, me.type)) {
+				if (!isGameEnd(x, y, me.getType())) {
 					changeActive();
 					sendAddChess(x, y);
 					mActions.add(new Point(x, y));
@@ -112,20 +112,20 @@ public class Game {
 				return true;
 			}
 		} else if (mMode == Constants.MODE_NET) {
-			if (mActive == me.type && mGameMap[x][y] == 0) {
-				mGameMap[x][y] = me.type;
-				mActive = challenger.type;
-				if (!isGameEnd(x, y, me.type)) {
+			if (mActive == me.getType() && mGameMap[x][y] == 0) {
+				mGameMap[x][y] = me.getType();
+				mActive = challenger.getType();
+				if (!isGameEnd(x, y, me.getType())) {
 					mActions.add(new Point(x, y));
 				}
 				sendAddChess(x, y);
 				return true;
 			}
 		} else if (mMode == Constants.MODE_SINGLE) {
-			if (mActive == me.type && mGameMap[x][y] == 0) {
-				mGameMap[x][y] = me.type;
-				mActive = challenger.type;
-				if (!isGameEnd(x, y, me.type)) {
+			if (mActive == me.getType() && mGameMap[x][y] == 0) {
+				mGameMap[x][y] = me.getType();
+				mActive = challenger.getType();
+				if (!isGameEnd(x, y, me.getType())) {
 					sendAddChess(x, y);
 					mActions.add(new Point(x, y));
 				}
@@ -147,10 +147,10 @@ public class Game {
 	 */
 	public void addChess(int x, int y, Player player) {
 		if (mGameMap[x][y] == 0) {
-			mGameMap[x][y] = player.type;
+			mGameMap[x][y] = player.getType();
 			mActions.add(new Point(x, y));
-			boolean isEnd = isGameEnd(x, y, player.type);
-			mActive = me.type;
+			boolean isEnd = isGameEnd(x, y, player.getType());
+			mActive = me.getType();
 			if (!isEnd) {
 				mNotify.sendEmptyMessage(Constants.ACTIVE_CHANGE);
 			}

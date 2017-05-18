@@ -6,5 +6,8 @@ import android.app.Application;
  * Created by lany on 15/6/20.
  */
 public class BaseApp extends Application {
-
+    @Override
+    public void onCreate() {
+        super.onCreate();
+    }
 }
