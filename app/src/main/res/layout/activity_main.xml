@@ -1,7 +1,7 @@
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="fill_parent"
     android:layout_height="fill_parent"
-    android:gravity="center"
+    android:gravity="center_horizontal"
     android:orientation="vertical">
 
     <Button
@@ -9,42 +9,26 @@
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_margin="8dp"
-        android:background="@drawable/btn_circle_style"
-        android:padding="16dp"
-        android:textColor="@android:color/white"
-        android:text="@string/new_game"
-        android:textSize="14sp" />
+        android:text="@string/new_game" />
 
     <Button
         android:id="@+id/fight"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_margin="8dp"
-        android:background="@drawable/btn_circle_style"
-        android:padding="8dp"
-        android:textColor="@android:color/white"
-        android:text="@string/fight"
-        android:textSize="14sp" />
+        android:text="@string/fight" />
 
     <Button
         android:id="@+id/conn_fight"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_margin="8dp"
-        android:background="@drawable/btn_circle_style"
-        android:padding="8dp"
-        android:textColor="@android:color/white"
-        android:text="@string/fight_connection"
-        android:textSize="14sp" />
+        android:text="@string/fight_connection" />
 
     <Button
         android:id="@+id/conn_about"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_margin="8dp"
-        android:background="@drawable/btn_circle_style"
-        android:padding="8dp"
-        android:textColor="@android:color/white"
-        android:text="@string/about"
-        android:textSize="14sp" />
+        android:text="@string/about" />
 </LinearLayout>
