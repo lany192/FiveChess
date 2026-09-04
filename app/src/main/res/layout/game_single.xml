@@ -116,7 +116,7 @@
         <!-- Game area -->
 
 
-        <com.github.lany192.fivechess.game.GameView
+        <com.github.lany192.fivechess.ui.common.GameBoardView
             android:id="@+id/game_view"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
@@ -156,6 +156,17 @@
                 android:textColor="@android:color/white"
                 android:textSize="14sp" />
 
+            <Button
+                android:id="@+id/difficulty"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_margin="8dp"
+                android:layout_weight="1"
+                android:background="@drawable/btn_circle_style"
+                android:padding="8dp"
+                android:text="@string/difficulty"
+                android:textColor="@android:color/white"
+                android:textSize="14sp" />
 
         </LinearLayout>
 

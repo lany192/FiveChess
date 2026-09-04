@@ -14,7 +14,7 @@
         android:supportsRtl="true"
         android:theme="@style/Theme.FiveChess">
         <activity
-            android:name=".activity.MainActivity"
+            android:name=".ui.main.MainActivity"
             android:exported="true"
             android:label="@string/app_name"
             android:theme="@style/Theme.AppCompat.Light.NoActionBar">
@@ -25,17 +25,17 @@
             </intent-filter>
         </activity>
         <activity
-            android:name=".activity.ConnectionActivity"
+            android:name=".ui.connect.ConnectionActivity"
             android:exported="false"
             android:label="@string/connections" />
         <activity
-            android:name=".activity.WifiGameActivity"
+            android:name=".ui.wifi.WifiGameActivity"
             android:exported="false" />
         <activity
-            android:name=".activity.PersonGameActivity"
+            android:name=".ui.person.PersonGameActivity"
             android:exported="false" />
         <activity
-            android:name=".activity.RobotGameActivity"
+            android:name=".ui.robot.RobotGameActivity"
             android:exported="false" />
     </application>
 

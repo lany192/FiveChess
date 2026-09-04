@@ -30,4 +30,8 @@
     <string name="scan_hint">搜索链接相同wifi的玩家（要链接同一个Wifi才能搜索到）</string>
     <string name="game_player">玩家</string>
     <string name="scan_loading">扫描中，请稍后......</string>
+    <string name="difficulty">难度</string>
+    <string name="ai_level_easy">简单</string>
+    <string name="ai_level_medium">中等</string>
+    <string name="ai_level_hard">困难</string>
 </resources>
