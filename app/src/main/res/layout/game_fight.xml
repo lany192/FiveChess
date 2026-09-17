@@ -124,6 +124,27 @@
             </LinearLayout>
         </com.google.android.material.card.MaterialCardView>
 
+        <!-- 终局结果横幅 -->
+        <com.google.android.material.card.MaterialCardView
+            android:id="@+id/result_banner"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="@dimen/spacing_s"
+            android:visibility="gone"
+            app:cardBackgroundColor="?attr/colorPrimaryContainer"
+            app:cardCornerRadius="12dp"
+            app:cardElevation="0dp">
+
+            <TextView
+                android:id="@+id/result_text"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:gravity="center"
+                android:padding="@dimen/spacing_m"
+                android:textAppearance="?attr/textAppearanceTitleMedium"
+                android:textColor="?attr/colorOnPrimaryContainer" />
+        </com.google.android.material.card.MaterialCardView>
+
         <!-- 棋盘框：SurfaceView 为独立层圆角裁不到，故用直角木框 -->
         <com.google.android.material.card.MaterialCardView
             android:layout_width="match_parent"

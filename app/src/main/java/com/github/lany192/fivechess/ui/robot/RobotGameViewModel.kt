@@ -34,6 +34,7 @@ class RobotGameViewModel(
     private var blackWins = 0
     private var whiteWins = 0
     private var winLine: List<Point> = emptyList()
+    private var winner: Side? = null
     private var aiThinking = false
     private var pendingRollback = false
 
@@ -114,13 +115,20 @@ class RobotGameViewModel(
                 is GameEvent.GameOver -> {
                     winLine = event.line
                     board = board.copy(winLine = event.line)
+                    winner = event.winner
                     when (event.winner) {
                         Side.BLACK -> blackWins++
                         Side.WHITE -> whiteWins++
                     }
                 }
-                is GameEvent.RollbackApplied -> winLine = emptyList()
-                GameEvent.Restarted -> winLine = emptyList()
+                is GameEvent.RollbackApplied -> {
+                    winLine = emptyList()
+                    winner = null
+                }
+                GameEvent.Restarted -> {
+                    winLine = emptyList()
+                    winner = null
+                }
                 else -> Unit
             }
         }
@@ -130,10 +138,8 @@ class RobotGameViewModel(
                 active = result.state.active,
                 blackWins = blackWins,
                 whiteWins = whiteWins,
+                winner = winner,
             )
-        }
-        result.events.filterIsInstance<GameEvent.GameOver>().forEach { event ->
-            viewModelScope.launch { emitEffect(RobotGameEffect.ShowGameOver(event.winner)) }
         }
     }
 

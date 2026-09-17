@@ -18,9 +18,10 @@ data class RobotGameState(
     val blackWins: Int = 0,
     val whiteWins: Int = 0,
     val aiLevel: Difficulty = Difficulty.MEDIUM,
+    /** 终局胜方，null 表示对局进行中（横幅随状态幂等渲染，不用弹窗） */
+    val winner: Side? = null,
 )
 
 sealed interface RobotGameEffect {
-    data class ShowGameOver(val winner: Side) : RobotGameEffect
     data class ShowDifficulty(val current: Difficulty) : RobotGameEffect
 }

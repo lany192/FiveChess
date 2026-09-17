@@ -37,6 +37,7 @@ class WifiGameViewModel(
     private var blackWins = 0
     private var whiteWins = 0
     private var winLine: List<Point> = emptyList()
+    private var end: WifiGameEnd? = null
     private var connected = false
     private var awaitingRollbackResponse = false
     private var rollbackDialogShowing = false
@@ -208,7 +209,8 @@ class WifiGameViewModel(
     /** 和棋终局：双方胜场均不加，两端对称 */
     private fun declareDraw() {
         declaredOver = true
-        viewModelScope.launch { emitEffect(WifiGameEffect.ShowDrawEnd) }
+        end = WifiGameEnd.Draw
+        updateState { it.copy(end = end) }
     }
 
     /** 宣告终局并结算胜场：两端从同一事件各自推导 winner，胜场计数保持一致 */
@@ -218,8 +220,8 @@ class WifiGameViewModel(
             Side.BLACK -> blackWins++
             Side.WHITE -> whiteWins++
         }
-        updateState { it.copy(blackWins = blackWins, whiteWins = whiteWins) }
-        viewModelScope.launch { emitEffect(WifiGameEffect.ShowGameResult(winner == mySide)) }
+        end = WifiGameEnd.Win(winner)
+        updateState { it.copy(blackWins = blackWins, whiteWins = whiteWins, end = end) }
     }
 
     private fun resetRoundFlags() {
@@ -235,13 +237,20 @@ class WifiGameViewModel(
                 is GameEvent.GameOver -> {
                     winLine = event.line
                     board = board.copy(winLine = event.line)
+                    end = WifiGameEnd.Win(event.winner)
                     when (event.winner) {
                         Side.BLACK -> blackWins++
                         Side.WHITE -> whiteWins++
                     }
                 }
-                is GameEvent.RollbackApplied -> winLine = emptyList()
-                GameEvent.Restarted -> winLine = emptyList()
+                is GameEvent.RollbackApplied -> {
+                    winLine = emptyList()
+                    end = null
+                }
+                GameEvent.Restarted -> {
+                    winLine = emptyList()
+                    end = null
+                }
                 else -> Unit
             }
         }
@@ -251,10 +260,8 @@ class WifiGameViewModel(
                 active = result.state.active,
                 blackWins = blackWins,
                 whiteWins = whiteWins,
+                end = end,
             )
-        }
-        result.events.filterIsInstance<GameEvent.GameOver>().forEach { event ->
-            viewModelScope.launch { emitEffect(WifiGameEffect.ShowGameResult(event.winner == mySide)) }
         }
     }
 

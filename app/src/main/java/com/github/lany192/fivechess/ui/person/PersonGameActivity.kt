@@ -11,7 +11,6 @@ import com.github.lany192.fivechess.R
 import com.github.lany192.fivechess.databinding.GameFightBinding
 import com.github.lany192.fivechess.domain.model.Side
 import com.github.lany192.fivechess.ui.common.setupEdgeToEdge
-import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import kotlinx.coroutines.launch
 
 class PersonGameActivity : AppCompatActivity() {
@@ -41,13 +40,6 @@ class PersonGameActivity : AppCompatActivity() {
         lifecycleScope.launch {
             repeatOnLifecycle(Lifecycle.State.STARTED) {
                 launch { viewModel.state.collect(::render) }
-                launch {
-                    viewModel.effects.collect { effect ->
-                        when (effect) {
-                            is PersonGameEffect.ShowGameOver -> showGameOverDialog(effect.winner)
-                        }
-                    }
-                }
             }
         }
     }
@@ -63,19 +55,13 @@ class PersonGameActivity : AppCompatActivity() {
         }
         binding.blackWin.text = state.blackWins.toString()
         binding.whiteWin.text = state.whiteWins.toString()
-    }
-
-    private fun showGameOverDialog(winner: Side) {
-        val message = if (winner == Side.BLACK) R.string.msg_black_win else R.string.msg_white_win
-        MaterialAlertDialogBuilder(this)
-            .setCancelable(false)
-            .setTitle(R.string.dialog_title_game_over)
-            .setMessage(message)
-            .setPositiveButton(R.string.Continue) { _, _ ->
-                viewModel.dispatch(PersonGameIntent.RestartClicked)
-            }
-            .setNegativeButton(R.string.exit) { _, _ -> finish() }
-            .show()
+        val winner = state.winner
+        binding.resultBanner.visibility = if (winner != null) View.VISIBLE else View.GONE
+        if (winner != null) {
+            binding.resultText.setText(
+                if (winner == Side.BLACK) R.string.msg_black_win else R.string.msg_white_win
+            )
+        }
     }
 
     private companion object {

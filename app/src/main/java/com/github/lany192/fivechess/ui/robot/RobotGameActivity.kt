@@ -62,7 +62,6 @@ class RobotGameActivity : AppCompatActivity() {
                 launch {
                     viewModel.effects.collect { effect ->
                         when (effect) {
-                            is RobotGameEffect.ShowGameOver -> showGameOverDialog(effect.winner)
                             is RobotGameEffect.ShowDifficulty -> showDifficultyDialog(effect.current)
                         }
                     }
@@ -82,19 +81,13 @@ class RobotGameActivity : AppCompatActivity() {
         }
         binding.blackWin.text = state.blackWins.toString()
         binding.whiteWin.text = state.whiteWins.toString()
-    }
-
-    private fun showGameOverDialog(winner: Side) {
-        val message = if (winner == Side.BLACK) R.string.msg_black_win else R.string.msg_white_win
-        MaterialAlertDialogBuilder(this)
-            .setCancelable(false)
-            .setTitle(R.string.dialog_title_game_over)
-            .setMessage(message)
-            .setPositiveButton(R.string.Continue) { _, _ ->
-                viewModel.dispatch(RobotGameIntent.RestartClicked)
-            }
-            .setNegativeButton(R.string.exit) { _, _ -> finish() }
-            .show()
+        val winner = state.winner
+        binding.resultBanner.visibility = if (winner != null) View.VISIBLE else View.GONE
+        if (winner != null) {
+            binding.resultText.setText(
+                if (winner == Side.BLACK) R.string.msg_black_win else R.string.msg_white_win
+            )
+        }
     }
 
     private fun showDifficultyDialog(current: Difficulty) {

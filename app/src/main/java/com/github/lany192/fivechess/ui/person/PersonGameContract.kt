@@ -14,8 +14,8 @@ data class PersonGameState(
     val active: Side = Side.BLACK,
     val blackWins: Int = 0,
     val whiteWins: Int = 0,
+    /** 终局胜方，null 表示对局进行中（横幅随状态幂等渲染，不用弹窗） */
+    val winner: Side? = null,
 )
 
-sealed interface PersonGameEffect {
-    data class ShowGameOver(val winner: Side) : PersonGameEffect
-}
+sealed interface PersonGameEffect

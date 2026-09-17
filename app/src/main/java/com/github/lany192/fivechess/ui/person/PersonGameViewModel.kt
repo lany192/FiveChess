@@ -1,6 +1,5 @@
 package com.github.lany192.fivechess.ui.person
 
-import androidx.lifecycle.viewModelScope
 import com.github.lany192.fivechess.core.mvi.MviViewModel
 import com.github.lany192.fivechess.domain.engine.EngineResult
 import com.github.lany192.fivechess.domain.engine.GameEngine
@@ -9,7 +8,6 @@ import com.github.lany192.fivechess.domain.model.GameMode
 import com.github.lany192.fivechess.domain.model.Point
 import com.github.lany192.fivechess.domain.model.Side
 import com.github.lany192.fivechess.ui.common.BoardRenderState
-import kotlinx.coroutines.launch
 
 class PersonGameViewModel(
     private val engine: GameEngine = GameEngine(),
@@ -20,6 +18,7 @@ class PersonGameViewModel(
     private var blackWins = 0
     private var whiteWins = 0
     private var winLine: List<Point> = emptyList()
+    private var winner: Side? = null
 
     init {
         engine.start(GameMode.LOCAL_TWO)
@@ -41,13 +40,20 @@ class PersonGameViewModel(
                 is GameEvent.GameOver -> {
                     winLine = event.line
                     board = board.copy(winLine = event.line)
+                    winner = event.winner
                     when (event.winner) {
                         Side.BLACK -> blackWins++
                         Side.WHITE -> whiteWins++
                     }
                 }
-                is GameEvent.RollbackApplied -> winLine = emptyList()
-                GameEvent.Restarted -> winLine = emptyList()
+                is GameEvent.RollbackApplied -> {
+                    winLine = emptyList()
+                    winner = null
+                }
+                GameEvent.Restarted -> {
+                    winLine = emptyList()
+                    winner = null
+                }
                 else -> Unit
             }
         }
@@ -57,10 +63,8 @@ class PersonGameViewModel(
                 active = result.state.active,
                 blackWins = blackWins,
                 whiteWins = whiteWins,
+                winner = winner,
             )
-        }
-        result.events.filterIsInstance<GameEvent.GameOver>().forEach { event ->
-            viewModelScope.launch { emitEffect(PersonGameEffect.ShowGameOver(event.winner)) }
         }
     }
 }

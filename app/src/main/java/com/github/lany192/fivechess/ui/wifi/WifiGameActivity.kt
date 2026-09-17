@@ -79,11 +79,9 @@ class WifiGameActivity : AppCompatActivity() {
                     viewModel.effects.collect { effect ->
                         when (effect) {
                             WifiGameEffect.DismissConnecting -> waitDialog?.dismiss()
-                            is WifiGameEffect.ShowGameResult -> showGameResultDialog(effect.iWon)
                             WifiGameEffect.ShowRollbackRequest -> showRollbackDialog()
                             WifiGameEffect.ShowDrawRequest -> showDrawRequestDialog()
                             WifiGameEffect.ShowResignConfirm -> showResignConfirmDialog()
-                            WifiGameEffect.ShowDrawEnd -> showDrawEndDialog()
                             is WifiGameEffect.ShowMessage -> Toast.makeText(
                                 this@WifiGameActivity, effect.text, Toast.LENGTH_SHORT,
                             ).show()
@@ -106,6 +104,19 @@ class WifiGameActivity : AppCompatActivity() {
         }
         binding.blackWin.text = state.blackWins.toString()
         binding.whiteWin.text = state.whiteWins.toString()
+        when (val end = state.end) {
+            null -> binding.resultBanner.visibility = View.GONE
+            WifiGameEnd.Draw -> {
+                binding.resultBanner.visibility = View.VISIBLE
+                binding.resultText.setText(R.string.msg_draw_end)
+            }
+            is WifiGameEnd.Win -> {
+                binding.resultBanner.visibility = View.VISIBLE
+                binding.resultText.setText(
+                    if (end.winner == state.mySide) R.string.msg_i_won else R.string.msg_i_lost
+                )
+            }
+        }
     }
 
     private fun showWaitDialog() {
@@ -116,18 +127,6 @@ class WifiGameActivity : AppCompatActivity() {
                 .create()
         }
         waitDialog?.show()
-    }
-
-    private fun showGameResultDialog(iWon: Boolean) {
-        val message = if (iWon) R.string.msg_i_won else R.string.msg_i_lost
-        MaterialAlertDialogBuilder(this)
-            .setTitle(R.string.dialog_title_game_over)
-            .setMessage(message)
-            .setPositiveButton(R.string.Continue) { _, _ ->
-                viewModel.dispatch(WifiGameIntent.RestartClicked)
-            }
-            .setNegativeButton(R.string.exit) { _, _ -> finish() }
-            .show()
     }
 
     private fun showRollbackDialog() {
@@ -163,18 +162,6 @@ class WifiGameActivity : AppCompatActivity() {
                 viewModel.dispatch(WifiGameIntent.ResignConfirmed)
             }
             .setNegativeButton(R.string.cancel, null)
-            .show()
-    }
-
-    private fun showDrawEndDialog() {
-        MaterialAlertDialogBuilder(this)
-            .setTitle(R.string.dialog_title_game_over)
-            .setMessage(R.string.msg_draw_end)
-            .setCancelable(false)
-            .setPositiveButton(R.string.Continue) { _, _ ->
-                viewModel.dispatch(WifiGameIntent.RestartClicked)
-            }
-            .setNegativeButton(R.string.exit) { _, _ -> finish() }
             .show()
     }
 

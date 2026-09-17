@@ -17,7 +17,6 @@
     <string name="restart">新开</string>
     <string name="rollback">悔棋</string>
     <string name="about">关于</string>
-    <string name="exit">退出</string>
     <string name="equal">求和</string>
     <string name="fail">认输</string>
     <string name="myself">自己</string>
@@ -25,7 +24,6 @@
     <string name="computer">电脑</string>
     <string name="ok">确定</string>
     <string name="cancel">取消</string>
-    <string name="Continue">继续</string>
     <string name="scan_hint">搜索连接同一 WiFi 的玩家</string>
     <string name="game_player">玩家</string>
     <string name="difficulty">难度</string>
@@ -34,7 +32,6 @@
     <string name="ai_level_hard">困难</string>
     <!-- 对话框与提示文案 -->
     <string name="about_message">欢迎访问源代码\nhttps://github.com/lany192/FiveChess</string>
-    <string name="dialog_title_game_over">对局结束</string>
     <string name="dialog_chat_title">对话</string>
     <string name="msg_black_win">黑方胜！</string>
     <string name="msg_white_win">白方胜！</string>
