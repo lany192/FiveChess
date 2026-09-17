@@ -17,6 +17,7 @@
         <item name="colorSurfaceContainerHigh">@color/surface_container_high</item>
         <item name="colorSurfaceContainerHighest">@color/surface_container_highest</item>
         <item name="colorOutline">@color/outline</item>
+        <item name="colorOutlineVariant">@color/outline_variant</item>
         <item name="colorOnBackground">@color/on_background</item>
         <item name="colorError">@color/error</item>
         <item name="android:colorBackground">@color/background</item>

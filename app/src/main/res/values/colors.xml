@@ -22,6 +22,7 @@
     <color name="surface_container_high">#EEEBDF</color>
     <color name="surface_container_highest">#E8E4D8</color>
     <color name="outline">#7B7568</color>
+    <color name="outline_variant">#D2CBBA</color>
     <color name="error">#BA1A1A</color>
     <!-- 棋盘 -->
     <color name="board_surface">#E6C48C</color>

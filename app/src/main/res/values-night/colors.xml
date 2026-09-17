@@ -15,7 +15,14 @@
     <color name="on_surface">#E7E1D6</color>
     <color name="surface_variant">#454239</color>
     <color name="on_surface_variant">#C9C2B3</color>
+    <!-- surfaceContainer 家族（Material 1.13 卡片/对话框默认取色，缺省会回退到浅色值） -->
+    <color name="surface_container_lowest">#0F0D0A</color>
+    <color name="surface_container_low">#1F1D16</color>
+    <color name="surface_container">#252118</color>
+    <color name="surface_container_high">#2F2A1F</color>
+    <color name="surface_container_highest">#3A3428</color>
     <color name="outline">#948D7E</color>
+    <color name="outline_variant">#4A4436</color>
     <color name="error">#F2B8B5</color>
     <!-- 棋盘（深色下降明度，保持木质观感） -->
     <color name="board_surface">#C99C63</color>
