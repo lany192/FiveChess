@@ -26,7 +26,7 @@
     <string name="cancel">取消</string>
     <string name="scan_hint">搜索连接同一 WiFi 的玩家</string>
     <string name="game_player">玩家</string>
-    <string name="difficulty">难度</string>
+    <string name="difficulty_format">难度：%1$s</string>
     <string name="ai_level_easy">简单</string>
     <string name="ai_level_medium">中等</string>
     <string name="ai_level_hard">困难</string>

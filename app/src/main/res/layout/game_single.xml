@@ -124,6 +124,14 @@
             </LinearLayout>
         </com.google.android.material.card.MaterialCardView>
 
+        <androidx.appcompat.widget.AppCompatSpinner
+            android:id="@+id/difficulty"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="@dimen/spacing_s"
+            android:minHeight="48dp"
+            android:spinnerMode="dropdown" />
+
         <!-- 终局结果横幅 -->
         <com.google.android.material.card.MaterialCardView
             android:id="@+id/result_banner"
@@ -183,14 +191,7 @@
                 android:layout_weight="1"
                 android:text="@string/rollback" />
 
-            <com.google.android.material.button.MaterialButton
-                android:id="@+id/difficulty"
-                style="@style/Widget.Material3.Button.TonalButton"
-                android:layout_width="0dp"
-                android:layout_height="wrap_content"
-                android:layout_marginStart="@dimen/spacing_s"
-                android:layout_weight="1"
-                android:text="@string/difficulty" />
+
         </LinearLayout>
     </LinearLayout>
 </ScrollView>

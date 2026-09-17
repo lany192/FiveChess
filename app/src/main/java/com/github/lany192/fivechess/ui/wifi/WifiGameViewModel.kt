@@ -118,10 +118,11 @@ class WifiGameViewModel(
         if (snapshot.over || snapshot.active != mySide) return
         val result = engine.applyMove(x, y)
         consume(result)
-        result.events.filterIsInstance<GameEvent.MoveApplied>().firstOrNull()?.let {
+        // 制胜一手只产生 GameOver 事件，按 MoveApplied 过滤会漏发，对端永远收不到终局
+        if (result.events.none { it is GameEvent.IllegalMove }) {
             // 局面已变，此前发出的求和请求失效
             awaitingDrawResponse = false
-            client.sendMove(it.move.x, it.move.y)
+            client.sendMove(x, y)
         }
     }
 

@@ -64,10 +64,6 @@ class RobotGameViewModel(
                     consume(engine.rollback(ROLLBACK_STEPS))
                 }
             }
-            RobotGameIntent.DifficultyClicked -> {
-                val level = state.value.aiLevel
-                viewModelScope.launch { emitEffect(RobotGameEffect.ShowDifficulty(level)) }
-            }
             is RobotGameIntent.LevelSelected -> {
                 ai.level = intent.level
                 levelStore?.write(intent.level.ordinal)

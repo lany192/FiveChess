@@ -8,7 +8,6 @@ sealed interface RobotGameIntent {
     data class BoardTap(val x: Int, val y: Int) : RobotGameIntent
     data object RestartClicked : RobotGameIntent
     data object RollbackClicked : RobotGameIntent
-    data object DifficultyClicked : RobotGameIntent
     data class LevelSelected(val level: Difficulty) : RobotGameIntent
 }
 
@@ -22,6 +21,4 @@ data class RobotGameState(
     val winner: Side? = null,
 )
 
-sealed interface RobotGameEffect {
-    data class ShowDifficulty(val current: Difficulty) : RobotGameEffect
-}
+sealed interface RobotGameEffect

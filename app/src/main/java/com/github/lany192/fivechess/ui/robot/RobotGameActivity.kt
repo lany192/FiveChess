@@ -2,6 +2,10 @@ package com.github.lany192.fivechess.ui.robot
 
 import android.os.Bundle
 import android.view.View
+import android.view.ViewGroup
+import android.widget.AdapterView
+import android.widget.ArrayAdapter
+import android.widget.TextView
 import androidx.activity.viewModels
 import androidx.appcompat.app.AppCompatActivity
 import androidx.lifecycle.Lifecycle
@@ -16,7 +20,6 @@ import com.github.lany192.fivechess.databinding.GameSingleBinding
 import com.github.lany192.fivechess.domain.ai.Difficulty
 import com.github.lany192.fivechess.domain.model.Side
 import com.github.lany192.fivechess.ui.common.setupEdgeToEdge
-import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import kotlinx.coroutines.launch
 
 /**
@@ -49,9 +52,7 @@ class RobotGameActivity : AppCompatActivity() {
         binding.rollback.setOnClickListener {
             viewModel.dispatch(RobotGameIntent.RollbackClicked)
         }
-        binding.difficulty.setOnClickListener {
-            viewModel.dispatch(RobotGameIntent.DifficultyClicked)
-        }
+        setupDifficultySpinner()
         observeViewModel()
     }
 
@@ -59,13 +60,6 @@ class RobotGameActivity : AppCompatActivity() {
         lifecycleScope.launch {
             repeatOnLifecycle(Lifecycle.State.STARTED) {
                 launch { viewModel.state.collect(::render) }
-                launch {
-                    viewModel.effects.collect { effect ->
-                        when (effect) {
-                            is RobotGameEffect.ShowDifficulty -> showDifficultyDialog(effect.current)
-                        }
-                    }
-                }
             }
         }
     }
@@ -81,6 +75,9 @@ class RobotGameActivity : AppCompatActivity() {
         }
         binding.blackWin.text = state.blackWins.toString()
         binding.whiteWin.text = state.whiteWins.toString()
+        if (binding.difficulty.selectedItemPosition != state.aiLevel.ordinal) {
+            binding.difficulty.setSelection(state.aiLevel.ordinal)
+        }
         val winner = state.winner
         binding.resultBanner.visibility = if (winner != null) View.VISIBLE else View.GONE
         if (winner != null) {
@@ -90,19 +87,40 @@ class RobotGameActivity : AppCompatActivity() {
         }
     }
 
-    private fun showDifficultyDialog(current: Difficulty) {
-        val names = arrayOf(
-            getString(R.string.ai_level_easy),
-            getString(R.string.ai_level_medium),
-            getString(R.string.ai_level_hard),
-        )
-        MaterialAlertDialogBuilder(this)
-            .setTitle(getString(R.string.difficulty))
-            .setSingleChoiceItems(names, current.ordinal) { dialog, which ->
-                dialog.dismiss()
-                viewModel.dispatch(RobotGameIntent.LevelSelected(Difficulty.entries[which]))
+    private fun levelName(level: Difficulty): String = getString(
+        when (level) {
+            Difficulty.EASY -> R.string.ai_level_easy
+            Difficulty.MEDIUM -> R.string.ai_level_medium
+            Difficulty.HARD -> R.string.ai_level_hard
+        }
+    )
+
+    private fun setupDifficultySpinner() {
+        binding.difficulty.adapter = object : ArrayAdapter<String>(
+            this,
+            android.R.layout.simple_spinner_item,
+            Difficulty.entries.map(::levelName),
+        ) {
+            // 收起态带"难度"前缀，下拉项只显示难度名
+            override fun getView(position: Int, convertView: View?, parent: ViewGroup): View =
+                super.getView(position, convertView, parent).apply {
+                    (this as TextView).text = getString(R.string.difficulty_format, getItem(position))
+                }
+        }.apply {
+            setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item)
+        }
+        // 先对齐已存难度再挂监听，避免适配器初始化触发的首帧回调误发改写
+        binding.difficulty.setSelection(viewModel.state.value.aiLevel.ordinal, false)
+        binding.difficulty.onItemSelectedListener = object : AdapterView.OnItemSelectedListener {
+            override fun onItemSelected(parent: AdapterView<*>?, view: View?, position: Int, id: Long) {
+                val level = Difficulty.entries[position]
+                if (level != viewModel.state.value.aiLevel) {
+                    viewModel.dispatch(RobotGameIntent.LevelSelected(level))
+                }
             }
-            .show()
+
+            override fun onNothingSelected(parent: AdapterView<*>?) = Unit
+        }
     }
 
     private companion object {
