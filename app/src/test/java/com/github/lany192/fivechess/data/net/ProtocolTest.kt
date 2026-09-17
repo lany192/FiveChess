@@ -246,4 +246,18 @@ class ProtocolTest {
         assertEquals(TcpType.DRAW_REJECT, TcpFrame(8, ByteArray(0)).typeEnum())
         assertEquals(TcpType.RESIGN, TcpFrame(9, ByteArray(0)).typeEnum())
     }
+
+    // ---------- 蓝牙控制通道 ----------
+
+    @Test
+    fun `蓝牙握手信号字节冻结`() {
+        assertEquals(20.toByte(), BtSignal.AGREE.b)
+        assertEquals(21.toByte(), BtSignal.REJECT.b)
+    }
+
+    @Test
+    fun `蓝牙服务UUID双端一致`() {
+        // 双端必须是同一个 UUID 才能互相发现；改动即破坏蓝牙互通
+        assertEquals("00001101-0000-1000-8000-00805F9B34FB", Protocol.BT_UUID)
+    }
 }

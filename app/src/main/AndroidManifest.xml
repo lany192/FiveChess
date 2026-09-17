@@ -3,6 +3,22 @@
 
     <uses-permission android:name="android.permission.INTERNET" />
     <uses-permission android:name="android.permission.ACCESS_WIFI_STATE" />
+    <!-- Android 12 以下的蓝牙权限（12 起改由下面两条运行时权限取代） -->
+    <uses-permission
+        android:name="android.permission.BLUETOOTH"
+        android:maxSdkVersion="30" />
+    <uses-permission
+        android:name="android.permission.BLUETOOTH_ADMIN"
+        android:maxSdkVersion="30" />
+    <!-- Android 12+ 蓝牙运行时权限；联机不用于推断位置 -->
+    <uses-permission android:name="android.permission.BLUETOOTH_CONNECT" />
+    <uses-permission
+        android:name="android.permission.BLUETOOTH_SCAN"
+        android:usesPermissionFlags="neverForLocation" />
+
+    <uses-feature
+        android:name="android.hardware.bluetooth"
+        android:required="false" />
 
     <application
         android:allowBackup="true"
@@ -28,7 +44,11 @@
             android:exported="false"
             android:label="@string/connections" />
         <activity
-            android:name=".ui.wifi.WifiGameActivity"
+            android:name=".ui.bluetooth.BluetoothConnectActivity"
+            android:exported="false"
+            android:label="@string/fight_bluetooth" />
+        <activity
+            android:name=".ui.net.NetGameActivity"
             android:exported="false" />
         <activity
             android:name=".ui.person.PersonGameActivity"

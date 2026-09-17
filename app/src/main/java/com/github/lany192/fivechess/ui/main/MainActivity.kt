@@ -5,6 +5,7 @@ import android.os.Bundle
 import androidx.appcompat.app.AppCompatActivity
 import com.github.lany192.fivechess.R
 import com.github.lany192.fivechess.databinding.ActivityMainBinding
+import com.github.lany192.fivechess.ui.bluetooth.BluetoothConnectActivity
 import com.github.lany192.fivechess.ui.common.setupEdgeToEdge
 import com.github.lany192.fivechess.ui.connect.ConnectionActivity
 import com.github.lany192.fivechess.ui.person.PersonGameActivity
@@ -26,6 +27,9 @@ class MainActivity : AppCompatActivity() {
         }
         binding.connFight.setOnClickListener {
             startActivity(Intent(this@MainActivity, ConnectionActivity::class.java))
+        }
+        binding.btFight.setOnClickListener {
+            startActivity(Intent(this@MainActivity, BluetoothConnectActivity::class.java))
         }
         binding.connAbout.setOnClickListener {
             MaterialAlertDialogBuilder(this@MainActivity)

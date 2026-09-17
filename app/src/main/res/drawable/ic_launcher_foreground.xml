@@ -1,22 +1,106 @@
 <vector xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:aapt="http://schemas.android.com/aapt"
     android:width="108dp"
     android:height="108dp"
     android:viewportWidth="108"
     android:viewportHeight="108">
-    <!-- 与 monochrome 同构图：4×4 网格 + 两黑一白，扁平风，内容收在中心 72dp 安全区 -->
+    <!-- 全出血棋盘格，间距15，遮罩自然裁边；内容收在中心安全圆内 -->
     <path
-        android:pathData="M30,30 L78,30 M30,46 L78,46 M30,62 L78,62 M30,78 L78,78 M30,30 L30,78 M46,30 L46,78 M62,30 L62,78 M78,30 L78,78"
-        android:strokeWidth="2.5"
-        android:strokeColor="@color/board_line" />
+        android:pathData="M12,24 L96,24 M12,39 L96,39 M12,54 L96,54 M12,69 L96,69 M12,84 L96,84 M24,12 L24,96 M39,12 L39,96 M54,12 L54,96 M69,12 L69,96 M84,12 L84,96"
+        android:strokeWidth="1.6"
+        android:strokeAlpha="0.85"
+        android:strokeColor="#6B4E2E" />
+    <!-- 星位 -->
     <path
-        android:fillColor="@color/stone_black"
-        android:pathData="M46,46 m-6.5,0 a6.5,6.5 0 1,0 13,0 a6.5,6.5 0 1,0 -13,0" />
+        android:fillColor="#6B4E2E"
+        android:fillAlpha="0.9"
+        android:pathData="M22.4,54 a1.6,1.6 0 1,0 3.2,0 a1.6,1.6 0 1,0 -3.2,0 M52.4,24 a1.6,1.6 0 1,0 3.2,0 a1.6,1.6 0 1,0 -3.2,0 M82.4,54 a1.6,1.6 0 1,0 3.2,0 a1.6,1.6 0 1,0 -3.2,0 M52.4,84 a1.6,1.6 0 1,0 3.2,0 a1.6,1.6 0 1,0 -3.2,0" />
+    <!-- 棋子投影 -->
     <path
-        android:fillColor="@color/stone_black"
-        android:pathData="M62,30 m-6.5,0 a6.5,6.5 0 1,0 13,0 a6.5,6.5 0 1,0 -13,0" />
+        android:fillColor="#40260E"
+        android:fillAlpha="0.22"
+        android:pathData="M31.8,41.4 a8.5,8.5 0 1,0 17,0 a8.5,8.5 0 1,0 -17,0 M46.8,56.4 a8.5,8.5 0 1,0 17,0 a8.5,8.5 0 1,0 -17,0 M61.8,71.4 a8.5,8.5 0 1,0 17,0 a8.5,8.5 0 1,0 -17,0 M31.8,71.4 a8.5,8.5 0 1,0 17,0 a8.5,8.5 0 1,0 -17,0 M61.8,41.4 a8.5,8.5 0 1,0 17,0 a8.5,8.5 0 1,0 -17,0" />
+    <!-- 黑子三连(主对角线) -->
+    <path android:pathData="M30.5,39 a8.5,8.5 0 1,0 17,0 a8.5,8.5 0 1,0 -17,0">
+        <aapt:attr name="android:fillColor">
+            <gradient
+                android:type="radial"
+                android:centerX="36.5"
+                android:centerY="36"
+                android:gradientRadius="11"
+                android:startColor="#5A5F65"
+                android:centerColor="#33363B"
+                android:endColor="#1B1D20" />
+        </aapt:attr>
+    </path>
+    <path android:pathData="M45.5,54 a8.5,8.5 0 1,0 17,0 a8.5,8.5 0 1,0 -17,0">
+        <aapt:attr name="android:fillColor">
+            <gradient
+                android:type="radial"
+                android:centerX="51.5"
+                android:centerY="51"
+                android:gradientRadius="11"
+                android:startColor="#5A5F65"
+                android:centerColor="#33363B"
+                android:endColor="#1B1D20" />
+        </aapt:attr>
+    </path>
+    <path android:pathData="M60.5,69 a8.5,8.5 0 1,0 17,0 a8.5,8.5 0 1,0 -17,0">
+        <aapt:attr name="android:fillColor">
+            <gradient
+                android:type="radial"
+                android:centerX="66.5"
+                android:centerY="66"
+                android:gradientRadius="11"
+                android:startColor="#5A5F65"
+                android:centerColor="#33363B"
+                android:endColor="#1B1D20" />
+        </aapt:attr>
+    </path>
+    <!-- 白子两颗(副对角线) -->
     <path
-        android:fillColor="@color/stone_white"
-        android:strokeColor="@color/stone_white_stroke"
-        android:strokeWidth="1.5"
-        android:pathData="M62,62 m-6.5,0 a6.5,6.5 0 1,0 13,0 a6.5,6.5 0 1,0 -13,0" />
+        android:pathData="M30.5,69 a8.5,8.5 0 1,0 17,0 a8.5,8.5 0 1,0 -17,0"
+        android:strokeWidth="0.9"
+        android:strokeColor="#A79D86">
+        <aapt:attr name="android:fillColor">
+            <gradient
+                android:type="radial"
+                android:centerX="36.5"
+                android:centerY="66"
+                android:gradientRadius="11"
+                android:startColor="#FFFFFF"
+                android:centerColor="#F4F2EC"
+                android:endColor="#D6D0C1" />
+        </aapt:attr>
+    </path>
+    <path
+        android:pathData="M60.5,39 a8.5,8.5 0 1,0 17,0 a8.5,8.5 0 1,0 -17,0"
+        android:strokeWidth="0.9"
+        android:strokeColor="#A79D86">
+        <aapt:attr name="android:fillColor">
+            <gradient
+                android:type="radial"
+                android:centerX="66.5"
+                android:centerY="36"
+                android:gradientRadius="11"
+                android:startColor="#FFFFFF"
+                android:centerColor="#F4F2EC"
+                android:endColor="#D6D0C1" />
+        </aapt:attr>
+    </path>
+    <!-- 高光 -->
+    <path
+        android:fillColor="#FFFFFF"
+        android:fillAlpha="0.30"
+        android:pathData="M33.8,35.6 a2.4,1.5 0 1,0 4.8,0 a2.4,1.5 0 1,0 -4.8,0 M48.8,50.6 a2.4,1.5 0 1,0 4.8,0 a2.4,1.5 0 1,0 -4.8,0 M63.8,65.6 a2.4,1.5 0 1,0 4.8,0 a2.4,1.5 0 1,0 -4.8,0" />
+    <path
+        android:fillColor="#FFFFFF"
+        android:fillAlpha="0.55"
+        android:pathData="M33.8,65.6 a2.4,1.5 0 1,0 4.8,0 a2.4,1.5 0 1,0 -4.8,0 M63.8,35.6 a2.4,1.5 0 1,0 4.8,0 a2.4,1.5 0 1,0 -4.8,0" />
+    <!-- 天元金点(制胜一手标记) -->
+    <path
+        android:fillColor="#F3C452"
+        android:strokeWidth="0.5"
+        android:strokeColor="#C08F2E"
+        android:pathData="M51.9,54 a2.1,2.1 0 1,0 4.2,0 a2.1,2.1 0 1,0 -4.2,0" />
 </vector>

@@ -1,6 +1,13 @@
-package com.github.lany192.fivechess.data.net
+package com.github.lany192.fivechess.data.bt
 
+import android.bluetooth.BluetoothAdapter
+import android.bluetooth.BluetoothServerSocket
+import android.bluetooth.BluetoothSocket
 import android.util.Log
+import com.github.lany192.fivechess.data.net.GameTransport
+import com.github.lany192.fivechess.data.net.NetEvent
+import com.github.lany192.fivechess.data.net.Protocol
+import com.github.lany192.fivechess.data.net.TcpType
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -14,17 +21,21 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import java.io.IOException
-import java.net.InetSocketAddress
-import java.net.ServerSocket
-import java.net.Socket
-import java.net.SocketException
+import java.util.UUID
 
 /**
- * 局域网对局传输：TCP 8899 收发落子/悔棋/重开指令（取代旧 ConnectedService）
+ * 蓝牙对局传输：RFCOMM 通道收发落子/悔棋/重开指令（对齐 [com.github.lany192.fivechess.data.net.LanGameClient]）
  *
- * 读侧按 [len][type][payload] 精确分帧（粘包/半帧安全），写侧字节与旧版完全一致。
+ * 与局域网版的差异仅在建连方式：TCP 端口换成服务 UUID，字节帧格式完全复用 [Protocol]。
+ * 因此两种模式的对局层可以共享同一份 ViewModel，只有发现/握手层不同。
+ *
+ * 线程模型同局域网版：阻塞 IO 协程，靠关闭 socket 打断 accept()/read()。
  */
-class LanGameClient(private val isServer: Boolean, private val remoteIp: String) : GameTransport {
+class BtGameClient(
+    private val adapter: BluetoothAdapter?,
+    private val isServer: Boolean,
+    private val remoteAddress: String,
+) : GameTransport {
 
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
 
@@ -34,10 +45,10 @@ class LanGameClient(private val isServer: Boolean, private val remoteIp: String)
     )
     override val events: SharedFlow<NetEvent> = _events.asSharedFlow()
 
-    private var serverSocket: ServerSocket? = null
+    private var serverSocket: BluetoothServerSocket? = null
 
     @Volatile
-    private var socket: Socket? = null
+    private var socket: BluetoothSocket? = null
 
     private val sendMutex = Mutex()
     private val frameReader = Protocol.TcpFrameReader()
@@ -45,7 +56,6 @@ class LanGameClient(private val isServer: Boolean, private val remoteIp: String)
     @Volatile
     private var running = false
 
-    /** 服务端监听 accept / 客户端重试建连（8 次 × 200ms） */
     override fun start() {
         if (running) return
         running = true
@@ -74,7 +84,6 @@ class LanGameClient(private val isServer: Boolean, private val remoteIp: String)
         send(Protocol.encodeTcp(TcpType.ROLLBACK_REJECT))
     }
 
-    /** 请求双方同步重开（新增消息类型） */
     override fun requestRestart() {
         send(Protocol.encodeTcp(TcpType.RESTART))
     }
@@ -91,62 +100,103 @@ class LanGameClient(private val isServer: Boolean, private val remoteIp: String)
         send(Protocol.encodeTcp(TcpType.DRAW_REJECT))
     }
 
-    /** 单方宣告认输，无需对方确认 */
     override fun sendResign() {
         send(Protocol.encodeTcp(TcpType.RESIGN))
     }
 
+    // ---------- 建连 ----------
+
     private suspend fun connectLoop() {
-        var connected: Socket? = null
-        try {
-            connected = if (isServer) {
-                val server = ServerSocket(Protocol.TCP_PORT)
-                serverSocket = server
-                // 对方同意后迟迟不来连接（闪退/杀进程）时不能永久阻塞
-                server.soTimeout = ACCEPT_TIMEOUT_MS
-                Log.d(TAG, "server waiting accept")
-                server.accept()
-            } else {
-                connectWithRetry()
-            }
-        } catch (e: IOException) {
-            Log.d(TAG, "connect fail: ${e.message}")
+        val adapter = adapter ?: run {
+            // 本机不支持蓝牙 / 服务缺失，直接按建连失败上报
+            Log.d(TAG, "bluetooth adapter unavailable")
             _events.tryEmit(NetEvent.ConnectFailed)
-            closeAll()
             return
         }
-        if (connected == null) {
-            // 客户端重试耗尽
+        val connected = try {
+            if (isServer) acceptOnce(adapter) else connectWithRetry(adapter)
+        } catch (e: SecurityException) {
+            Log.d(TAG, "bt permission denied: ${e.message}")
+            null
+        } catch (e: IOException) {
+            Log.d(TAG, "bt connect fail: ${e.message}")
+            null
+        }
+        if (connected == null || !running) {
             _events.tryEmit(NetEvent.ConnectFailed)
             closeAll()
             return
         }
         socket = connected
-        Log.d(TAG, "net connected")
+        Log.d(TAG, "bt connected")
         _events.tryEmit(NetEvent.Connected)
         readLoop(connected)
     }
 
-    private suspend fun connectWithRetry(): Socket? {
+    private fun acceptOnce(adapter: BluetoothAdapter): BluetoothSocket? {
+        val server = adapter.listenUsingRfcommWithServiceRecord(
+            Protocol.BT_SERVICE_NAME,
+            UUID.fromString(Protocol.BT_UUID),
+        )
+        serverSocket = server
+        Log.d(TAG, "bt server waiting accept")
+        // accept(timeout) 超时返回 null；stop() 关闭 socket 则以 IOException 打断
+        return server.accept(ACCEPT_TIMEOUT_MS)
+    }
+
+    /**
+     * 客户端重试建连
+     *
+     * 对端在联机页同意后要先关掉握手通道、再打开对局监听口，存在短暂空窗，故必须重试。
+     * 重试按**墙钟**封顶而非次数：对端不在范围内时单次 connect 会耗到寻呼超时（数十秒），
+     * 固定次数会把这个时间乘以次数，用户要干等几分钟。
+     * 发现过程也会显著拖慢甚至阻塞 RFCOMM 建连，先取消。
+     */
+    private suspend fun connectWithRetry(adapter: BluetoothAdapter): BluetoothSocket? {
+        try {
+            adapter.cancelDiscovery()
+        } catch (e: SecurityException) {
+            throw e
+        } catch (e: Exception) {
+            Log.d(TAG, "cancel discovery fail: ${e.message}")
+        }
+        val remote = try {
+            adapter.getRemoteDevice(remoteAddress)
+        } catch (e: IllegalArgumentException) {
+            Log.d(TAG, "bt remote address invalid: $remoteAddress")
+            return null
+        }
+        val deadline = System.currentTimeMillis() + RETRY_BUDGET_MS
+        var attempt = 0
         var lastError: IOException? = null
-        repeat(RETRY_TIMES) { attempt ->
+        while (running && System.currentTimeMillis() < deadline) {
+            attempt++
+            val candidate = try {
+                remote.createRfcommSocketToServiceRecord(UUID.fromString(Protocol.BT_UUID))
+            } catch (e: IOException) {
+                Log.d(TAG, "bt create socket fail: ${e.message}")
+                return null
+            }
             try {
-                val s = Socket()
-                s.connect(InetSocketAddress(remoteIp, Protocol.TCP_PORT))
-                Log.d(TAG, "client connected after ${attempt + 1} attempts")
-                return s
+                candidate.connect()
+                Log.d(TAG, "bt client connected after $attempt attempts")
+                return candidate
             } catch (e: IOException) {
                 lastError = e
-                delay(RETRY_INTERVAL_MS)
+                closeQuietly(candidate)
             }
+            if (System.currentTimeMillis() >= deadline) break
+            delay(RETRY_INTERVAL_MS)
         }
-        Log.d(TAG, "connect retry exhausted: ${lastError?.message}")
+        Log.d(TAG, "bt connect retry exhausted: ${lastError?.message}")
         return null
     }
 
-    private fun readLoop(socket: Socket) {
+    // ---------- 收发 ----------
+
+    private fun readLoop(socket: BluetoothSocket) {
         try {
-            val input = socket.getInputStream()
+            val input = socket.inputStream
             val buf = ByteArray(BUFFER_SIZE)
             while (running) {
                 val n = input.read(buf)
@@ -187,24 +237,19 @@ class LanGameClient(private val isServer: Boolean, private val remoteIp: String)
             val target = socket ?: return@launch
             sendMutex.withLock {
                 try {
-                    val output = target.getOutputStream()
+                    val output = target.outputStream
                     output.write(frame)
                     output.flush()
                 } catch (e: IOException) {
                     // 发送失败通常伴随断线，读循环负责上报 Disconnected
-                    Log.d(TAG, "tcp send fail: ${e.message}")
-                } catch (e: SocketException) {
-                    Log.d(TAG, "tcp send fail: ${e.message}")
+                    Log.d(TAG, "bt send fail: ${e.message}")
                 }
             }
         }
     }
 
     private fun closeAll() {
-        try {
-            socket?.close()
-        } catch (_: IOException) {
-        }
+        closeQuietly(socket)
         try {
             serverSocket?.close()
         } catch (_: IOException) {
@@ -213,11 +258,20 @@ class LanGameClient(private val isServer: Boolean, private val remoteIp: String)
         serverSocket = null
     }
 
+    private fun closeQuietly(target: BluetoothSocket?) {
+        try {
+            target?.close()
+        } catch (_: IOException) {
+        }
+    }
+
     private companion object {
-        const val TAG = "LanGameClient"
+        const val TAG = "BtGameClient"
         const val BUFFER_SIZE = 2048
-        const val RETRY_TIMES = 10
-        const val RETRY_INTERVAL_MS = 250L
+
+        /** 建连重试总时长预算，覆盖对端"关握手口 → 开对局口"的空窗即可 */
+        const val RETRY_BUDGET_MS = 15_000L
+        const val RETRY_INTERVAL_MS = 300L
         const val ACCEPT_TIMEOUT_MS = 30_000
     }
 }

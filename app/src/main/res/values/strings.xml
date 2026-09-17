@@ -4,10 +4,20 @@
     <string name="mode_desc_robot">简单 / 中等 / 困难三种难度</string>
     <string name="mode_desc_person">同屏轮流落子</string>
     <string name="mode_desc_lan">连接同一 WiFi 的玩家</string>
+    <string name="mode_desc_bt">连接附近的蓝牙设备玩家</string>
     <string name="scan">局域网联机扫描</string>
+    <string name="bt_scan">蓝牙联机扫描</string>
+    <string name="bt_scan_hint">搜索已配对或附近的蓝牙设备</string>
+    <!-- 本机蓝牙身份（对方会在他的列表里看到这个名字，用于对号） -->
+    <string name="bt_self_name">本机：%1$s</string>
+    <string name="bt_self_name_mac">本机：%1$s（%2$s）</string>
+    <string name="bt_name_unknown">未命名设备</string>
+    <string name="label_ip">IP地址</string>
+    <string name="label_mac">MAC地址</string>
     <string name="new_game">人机对战</string>
     <string name="fight">两人对战</string>
     <string name="fight_connection">联网对战</string>
+    <string name="fight_bluetooth">蓝牙对战</string>
     <string name="agree">同意</string>
     <string name="reject">拒绝</string>
     <string name="fight_request">请求和你对战</string>
@@ -42,6 +52,10 @@
     <string name="msg_wait_peer">等待 %1$s 回应，请稍后…</string>
     <string name="msg_connect_failed">建立网络失败，请重试</string>
     <string name="msg_wifi_check">请检查 WiFi 连接后重试</string>
+    <string name="msg_bt_check">请先开启蓝牙后重试</string>
+    <string name="msg_bt_permission">需要蓝牙权限才能联机</string>
+    <string name="msg_bt_unavailable">本机不支持蓝牙</string>
+    <string name="msg_bt_wait_peer">等待对方回应，请稍后…</string>
     <string name="msg_draw_ask">对方请求和棋，是否同意？</string>
     <string name="msg_draw_end">双方和棋</string>
     <string name="msg_resign_confirm">确定要认输吗？本方判负</string>

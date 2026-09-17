@@ -1,6 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:orientation="vertical"
@@ -15,7 +16,21 @@
         app:title="@string/connections"
         app:titleTextColor="?attr/colorOnSurface" />
 
+    <!-- 蓝牙联机页用来显示本机身份；局域网页不设置，保持 GONE -->
     <TextView
+        android:id="@+id/self_info"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="@dimen/spacing_s"
+        android:textAppearance="?attr/textAppearanceBodyMedium"
+        android:textColor="?attr/colorPrimary"
+        android:textIsSelectable="true"
+        android:visibility="gone"
+        tools:text="本机：HUAWEI Mate 50（90:F0:52:B0:AB:6A）"
+        tools:visibility="visible" />
+
+    <TextView
+        android:id="@+id/hint"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:layout_marginTop="@dimen/spacing_s"

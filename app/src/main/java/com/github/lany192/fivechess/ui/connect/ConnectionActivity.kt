@@ -18,13 +18,13 @@ import com.github.lany192.fivechess.data.net.ChatContent
 import com.github.lany192.fivechess.databinding.ActivityConnectBinding
 import com.github.lany192.fivechess.databinding.ChatDialogBinding
 import com.github.lany192.fivechess.ui.common.setupEdgeToEdge
-import com.github.lany192.fivechess.ui.wifi.WifiGameActivity
+import com.github.lany192.fivechess.ui.net.NetGameActivity
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import kotlinx.coroutines.launch
 
 class ConnectionActivity : AppCompatActivity() {
     private lateinit var binding: ActivityConnectBinding
-    private val peerAdapter = PeerAdapter(this) { item ->
+    private val peerAdapter = PeerAdapter(this, idLabel = R.string.label_ip) { item ->
         viewModel.dispatch(ConnectIntent.PeerClicked(item.ip))
     }
     private val chatAdapter = ChatAdapter()
@@ -72,7 +72,7 @@ class ConnectionActivity : AppCompatActivity() {
                             ConnectEffect.DismissHandshake -> handshakeDialog?.dismiss()
                             is ConnectEffect.ShowConnecting -> showConnectingDialog(effect.ip)
                             ConnectEffect.DismissConnecting -> waitDialog?.dismiss()
-                            is ConnectEffect.NavigateToGame -> WifiGameActivity.start(
+                            is ConnectEffect.NavigateToGame -> NetGameActivity.startLan(
                                 this@ConnectionActivity, effect.isServer, effect.ip,
                             )
                             is ConnectEffect.ShowMessage -> Toast.makeText(

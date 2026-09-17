@@ -3,17 +3,12 @@
     android:height="108dp"
     android:viewportWidth="108"
     android:viewportHeight="108">
+    <!-- 与前景同构图的剪影：网格 + 五子 -->
     <path
-        android:pathData="M30,30 L78,30 M30,46 L78,46 M30,62 L78,62 M30,78 L78,78 M30,30 L30,78 M46,30 L46,78 M62,30 L62,78 M78,30 L78,78"
-        android:strokeWidth="2.5"
+        android:pathData="M12,24 L96,24 M12,39 L96,39 M12,54 L96,54 M12,69 L96,69 M12,84 L96,84 M24,12 L24,96 M39,12 L39,96 M54,12 L54,96 M69,12 L69,96 M84,12 L84,96"
+        android:strokeWidth="1.6"
         android:strokeColor="#000" />
     <path
         android:fillColor="#000"
-        android:pathData="M46,46 m-6.5,0 a6.5,6.5 0 1,0 13,0 a6.5,6.5 0 1,0 -13,0" />
-    <path
-        android:fillColor="#000"
-        android:pathData="M62,62 m-6.5,0 a6.5,6.5 0 1,0 13,0 a6.5,6.5 0 1,0 -13,0" />
-    <path
-        android:fillColor="#000"
-        android:pathData="M62,30 m-6.5,0 a6.5,6.5 0 1,0 13,0 a6.5,6.5 0 1,0 -13,0" />
+        android:pathData="M30.5,39 a8.5,8.5 0 1,0 17,0 a8.5,8.5 0 1,0 -17,0 M45.5,54 a8.5,8.5 0 1,0 17,0 a8.5,8.5 0 1,0 -17,0 M60.5,69 a8.5,8.5 0 1,0 17,0 a8.5,8.5 0 1,0 -17,0 M30.5,69 a8.5,8.5 0 1,0 17,0 a8.5,8.5 0 1,0 -17,0 M60.5,39 a8.5,8.5 0 1,0 17,0 a8.5,8.5 0 1,0 -17,0" />
 </vector>

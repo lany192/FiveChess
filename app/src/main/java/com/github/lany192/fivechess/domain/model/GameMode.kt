@@ -12,4 +12,7 @@ enum class GameMode {
 
     /** 局域网对战 */
     LAN,
+
+    /** 蓝牙对战 */
+    BLUETOOTH,
 }

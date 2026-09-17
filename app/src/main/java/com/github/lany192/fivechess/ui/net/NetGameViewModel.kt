@@ -1,8 +1,8 @@
-package com.github.lany192.fivechess.ui.wifi
+package com.github.lany192.fivechess.ui.net
 
 import androidx.lifecycle.viewModelScope
 import com.github.lany192.fivechess.core.mvi.MviViewModel
-import com.github.lany192.fivechess.data.net.LanGameClient
+import com.github.lany192.fivechess.data.net.GameTransport
 import com.github.lany192.fivechess.data.net.NetEvent
 import com.github.lany192.fivechess.domain.engine.EngineResult
 import com.github.lany192.fivechess.domain.engine.GameEngine
@@ -15,29 +15,30 @@ import com.github.lany192.fivechess.ui.common.BoardRenderState
 import kotlinx.coroutines.launch
 
 /**
- * 局域网对战：被请求方（server）执黑先手，发起方（client）执白
+ * 联机对战：被请求方（server）执黑先手，发起方（client）执白
+ *
+ * 传输层经 [GameTransport] 注入，局域网与蓝牙共用本 ViewModel。
  *
  * - 悔棋为协商制：双方各自从落子历史中移除"请求方最后一手及其之后所有棋子"，
  *   两端移除数量由同一份历史推导，修复旧版两端各删一手导致的棋盘失同步
  * - 重开棋局通过 RESTART 消息同步两端，修复旧版仅本地清盘的失同步
  */
-class WifiGameViewModel(
-    private val isServer: Boolean,
-    private val remoteIp: String,
+class NetGameViewModel(
+    private val mode: GameMode,
+    private val mySide: Side,
+    private val transport: GameTransport,
     private val engine: GameEngine = GameEngine(),
-    private val client: LanGameClient = LanGameClient(isServer, remoteIp),
-) : MviViewModel<WifiGameIntent, WifiGameState, WifiGameEffect>(
-    WifiGameState(
+) : MviViewModel<NetGameIntent, NetGameState, NetGameEffect>(
+    NetGameState(
         board = BoardRenderState.empty(),
-        mySide = if (isServer) Side.BLACK else Side.WHITE,
+        mySide = mySide,
     )
 ) {
 
-    private val mySide: Side = if (isServer) Side.BLACK else Side.WHITE
     private var blackWins = 0
     private var whiteWins = 0
     private var winLine: List<Point> = emptyList()
-    private var end: WifiGameEnd? = null
+    private var end: NetGameEnd? = null
     private var connected = false
     private var awaitingRollbackResponse = false
     private var rollbackDialogShowing = false
@@ -48,65 +49,65 @@ class WifiGameViewModel(
     private var declaredOver = false
 
     init {
-        engine.start(GameMode.LAN, mySide = mySide)
+        engine.start(mode, mySide = mySide)
         updateState { it.copy(board = BoardRenderState.from(engine.snapshot())) }
         viewModelScope.launch {
-            client.events.collect(::onNetEvent)
+            transport.events.collect(::onNetEvent)
         }
-        client.start()
+        transport.start()
     }
 
-    override fun onIntent(intent: WifiGameIntent) {
+    override fun onIntent(intent: NetGameIntent) {
         when (intent) {
-            is WifiGameIntent.BoardTap -> tryLocalMove(intent.x, intent.y)
-            WifiGameIntent.RestartClicked -> {
+            is NetGameIntent.BoardTap -> tryLocalMove(intent.x, intent.y)
+            NetGameIntent.RestartClicked -> {
                 resetRoundFlags()
                 consume(engine.restart())
-                client.requestRestart()
+                transport.requestRestart()
             }
-            WifiGameIntent.RollbackClicked -> {
+            NetGameIntent.RollbackClicked -> {
                 if (!connected || declaredOver || awaitingRollbackResponse || rollbackDialogShowing) return
                 val hasMyStone = engine.snapshot().moves.any { it.side == mySide }
                 if (!hasMyStone) return
                 awaitingRollbackResponse = true
-                client.askRollback()
+                transport.askRollback()
             }
-            WifiGameIntent.RollbackAgreed -> {
+            NetGameIntent.RollbackAgreed -> {
                 rollbackDialogShowing = false
-                client.agreeRollback()
+                transport.agreeRollback()
                 applyRollback(mySide.opposite)
             }
-            WifiGameIntent.RollbackRejected -> {
+            NetGameIntent.RollbackRejected -> {
                 rollbackDialogShowing = false
-                client.rejectRollback()
+                transport.rejectRollback()
             }
-            WifiGameIntent.DrawClicked -> {
+            NetGameIntent.DrawClicked -> {
                 if (!connected || declaredOver || awaitingDrawResponse || drawDialogShowing) return
                 if (engine.snapshot().over) return
                 awaitingDrawResponse = true
-                client.askDraw()
-                viewModelScope.launch { emitEffect(WifiGameEffect.ShowMessage("已发送求和请求")) }
+                transport.askDraw()
+                viewModelScope.launch { emitEffect(NetGameEffect.ShowMessage("已发送求和请求")) }
             }
-            WifiGameIntent.DrawAgreed -> {
+            NetGameIntent.DrawAgreed -> {
                 drawDialogShowing = false
                 if (declaredOver || engine.snapshot().over) {
-                    client.rejectDraw()
+                    transport.rejectDraw()
                     return
                 }
-                client.agreeDraw()
+                transport.agreeDraw()
                 declareDraw()
             }
-            WifiGameIntent.DrawRejected -> {
+            NetGameIntent.DrawRejected -> {
                 drawDialogShowing = false
-                client.rejectDraw()
+                transport.rejectDraw()
             }
-            WifiGameIntent.ResignClicked -> {
+            NetGameIntent.ResignClicked -> {
                 if (!connected || declaredOver || engine.snapshot().over) return
-                viewModelScope.launch { emitEffect(WifiGameEffect.ShowResignConfirm) }
+                viewModelScope.launch { emitEffect(NetGameEffect.ShowResignConfirm) }
             }
-            WifiGameIntent.ResignConfirmed -> {
+            NetGameIntent.ResignConfirmed -> {
                 if (declaredOver || engine.snapshot().over) return
-                client.sendResign()
+                transport.sendResign()
                 declareWinner(mySide.opposite)
             }
         }
@@ -122,7 +123,7 @@ class WifiGameViewModel(
         if (result.events.none { it is GameEvent.IllegalMove }) {
             // 局面已变，此前发出的求和请求失效
             awaitingDrawResponse = false
-            client.sendMove(x, y)
+            transport.sendMove(x, y)
         }
     }
 
@@ -138,20 +139,20 @@ class WifiGameViewModel(
             NetEvent.Connected -> {
                 connected = true
                 updateState { it.copy(connected = true) }
-                viewModelScope.launch { emitEffect(WifiGameEffect.DismissConnecting) }
+                viewModelScope.launch { emitEffect(NetGameEffect.DismissConnecting) }
             }
             NetEvent.ConnectFailed -> {
                 viewModelScope.launch {
-                    emitEffect(WifiGameEffect.DismissConnecting)
-                    emitEffect(WifiGameEffect.ShowMessage("建立网络失败,请重试"))
-                    emitEffect(WifiGameEffect.Exit)
+                    emitEffect(NetGameEffect.DismissConnecting)
+                    emitEffect(NetGameEffect.ShowMessage("建立连接失败,请重试"))
+                    emitEffect(NetGameEffect.Exit)
                 }
             }
             NetEvent.Disconnected -> {
                 viewModelScope.launch {
-                    emitEffect(WifiGameEffect.DismissConnecting)
-                    emitEffect(WifiGameEffect.ShowMessage("对方已断开连接"))
-                    emitEffect(WifiGameEffect.Exit)
+                    emitEffect(NetGameEffect.DismissConnecting)
+                    emitEffect(NetGameEffect.ShowMessage("对方已断开连接"))
+                    emitEffect(NetGameEffect.Exit)
                 }
             }
             is NetEvent.ChessMove -> {
@@ -160,36 +161,36 @@ class WifiGameViewModel(
             }
             NetEvent.RollbackAsked -> {
                 if (declaredOver) {
-                    client.rejectRollback()
+                    transport.rejectRollback()
                     return
                 }
                 if (rollbackDialogShowing || awaitingRollbackResponse) return
                 rollbackDialogShowing = true
-                viewModelScope.launch { emitEffect(WifiGameEffect.ShowRollbackRequest) }
+                viewModelScope.launch { emitEffect(NetGameEffect.ShowRollbackRequest) }
             }
             NetEvent.RollbackAgreed -> {
                 awaitingRollbackResponse = false
-                viewModelScope.launch { emitEffect(WifiGameEffect.ShowMessage("对方同意悔棋")) }
+                viewModelScope.launch { emitEffect(NetGameEffect.ShowMessage("对方同意悔棋")) }
                 applyRollback(mySide)
             }
             NetEvent.RollbackRejected -> {
                 awaitingRollbackResponse = false
-                viewModelScope.launch { emitEffect(WifiGameEffect.ShowMessage("对方拒绝了你的请求")) }
+                viewModelScope.launch { emitEffect(NetGameEffect.ShowMessage("对方拒绝了你的请求")) }
             }
             NetEvent.RestartRequested -> {
                 resetRoundFlags()
                 consume(engine.restart())
-                viewModelScope.launch { emitEffect(WifiGameEffect.ShowMessage("对方已重新开始")) }
+                viewModelScope.launch { emitEffect(NetGameEffect.ShowMessage("对方已重新开始")) }
             }
             NetEvent.DrawAsked -> {
                 if (declaredOver || engine.snapshot().over) {
                     // 终局期间的求和直接拒绝，避免请求方悬挂
-                    client.rejectDraw()
+                    transport.rejectDraw()
                     return
                 }
                 if (drawDialogShowing || awaitingDrawResponse) return
                 drawDialogShowing = true
-                viewModelScope.launch { emitEffect(WifiGameEffect.ShowDrawRequest) }
+                viewModelScope.launch { emitEffect(NetGameEffect.ShowDrawRequest) }
             }
             NetEvent.DrawAgreed -> {
                 awaitingDrawResponse = false
@@ -198,7 +199,7 @@ class WifiGameViewModel(
             }
             NetEvent.DrawRejected -> {
                 awaitingDrawResponse = false
-                viewModelScope.launch { emitEffect(WifiGameEffect.ShowMessage("对方拒绝求和")) }
+                viewModelScope.launch { emitEffect(NetGameEffect.ShowMessage("对方拒绝求和")) }
             }
             NetEvent.Resigned -> {
                 if (declaredOver || engine.snapshot().over) return
@@ -210,7 +211,7 @@ class WifiGameViewModel(
     /** 和棋终局：双方胜场均不加，两端对称 */
     private fun declareDraw() {
         declaredOver = true
-        end = WifiGameEnd.Draw
+        end = NetGameEnd.Draw
         updateState { it.copy(end = end) }
     }
 
@@ -221,7 +222,7 @@ class WifiGameViewModel(
             Side.BLACK -> blackWins++
             Side.WHITE -> whiteWins++
         }
-        end = WifiGameEnd.Win(winner)
+        end = NetGameEnd.Win(winner)
         updateState { it.copy(blackWins = blackWins, whiteWins = whiteWins, end = end) }
     }
 
@@ -238,7 +239,7 @@ class WifiGameViewModel(
                 is GameEvent.GameOver -> {
                     winLine = event.line
                     board = board.copy(winLine = event.line)
-                    end = WifiGameEnd.Win(event.winner)
+                    end = NetGameEnd.Win(event.winner)
                     when (event.winner) {
                         Side.BLACK -> blackWins++
                         Side.WHITE -> whiteWins++
@@ -267,7 +268,7 @@ class WifiGameViewModel(
     }
 
     override fun onCleared() {
-        client.stop()
+        transport.stop()
         super.onCleared()
     }
 }

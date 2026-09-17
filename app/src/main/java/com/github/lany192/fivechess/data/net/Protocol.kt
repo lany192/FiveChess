@@ -30,8 +30,32 @@ enum class TcpType(val b: Byte) {
     RESIGN(9),
 }
 
-/** 旧 onError 的错误码语义 */
-enum class DiscoveryError { SOCKET_NULL, IP_NULL, UDP_IP_ERROR, UDP_DATA_ERROR, MULTICAST_ERROR }
+/**
+ * 蓝牙 RFCOMM 控制通道握手信号
+ *
+ * 蓝牙没有 UDP 那样的带外信令，联机请求本身就是一条 RFCOMM 连接：
+ * 被叫方 accept 成功后由用户裁决，再回写一个字节告知结果。
+ * 与 TCP 帧体无关，仅存在于蓝牙控制通道，不影响局域网字节协议。
+ */
+enum class BtSignal(val b: Byte) { AGREE(20), REJECT(21) }
+
+/** 旧 onError 的错误码语义（蓝牙相关条目为追加，不影响局域网既有语义） */
+enum class DiscoveryError {
+    SOCKET_NULL,
+    IP_NULL,
+    UDP_IP_ERROR,
+    UDP_DATA_ERROR,
+    MULTICAST_ERROR,
+
+    /** 蓝牙未开启或本机不支持 */
+    BT_DISABLED,
+
+    /** 缺少蓝牙运行时权限 */
+    BT_PERMISSION_DENIED,
+
+    /** 蓝牙建连失败 */
+    BT_CONNECT_FAILED,
+}
 
 /** 协议解析失败（畸形输入只抛异常，不崩溃调用方） */
 class ProtocolException(message: String) : IllegalArgumentException(message)
@@ -62,6 +86,17 @@ object Protocol {
     const val MULTICAST_PORT = 1688
     const val UDP_PORT = 2599
     const val TCP_PORT = 8899
+
+    /**
+     * 蓝牙 RFCOMM 服务 UUID（双端必须一致）
+     *
+     * 用 SPP 标准 UUID：服务记录随 listenUsingRfcommWithServiceRecord 注册、随 socket 关闭注销，
+     * 因此只有处于联机页的两台设备能互相看到该通道。
+     */
+    const val BT_UUID = "00001101-0000-1000-8000-00805F9B34FB"
+
+    /** 蓝牙服务记录名（部分旧设备在配对列表中会展示该名字） */
+    const val BT_SERVICE_NAME = "FiveChess"
 
     // ---------- UDP 广播 ----------
 

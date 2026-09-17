@@ -4,9 +4,9 @@ import androidx.lifecycle.viewModelScope
 import com.github.lany192.fivechess.core.mvi.MviViewModel
 import com.github.lany192.fivechess.data.net.ChatContent
 import com.github.lany192.fivechess.data.net.ConnectionItem
-import com.github.lany192.fivechess.data.net.DiscoveryError
 import com.github.lany192.fivechess.data.net.DiscoveryEvent
 import com.github.lany192.fivechess.data.net.LanDiscoveryManager
+import com.github.lany192.fivechess.ui.common.describe
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
@@ -101,7 +101,7 @@ class ConnectViewModel(
                 viewModelScope.launch { emitEffect(ConnectEffect.ShowChat(chats.toList())) }
             }
             is DiscoveryEvent.Error -> viewModelScope.launch {
-                emitEffect(ConnectEffect.ShowMessage(describe(event.kind)))
+                emitEffect(ConnectEffect.ShowMessage(event.kind.describe()))
             }
         }
     }
@@ -163,14 +163,6 @@ class ConnectViewModel(
         pendingIp = null
         agreeTimeoutJob?.cancel()
         agreeTimeoutJob = null
-    }
-
-    private fun describe(kind: DiscoveryError): String = when (kind) {
-        DiscoveryError.SOCKET_NULL -> "网络套接字未就绪"
-        DiscoveryError.IP_NULL -> "本机IP获取失败"
-        DiscoveryError.UDP_IP_ERROR -> "目标地址无效"
-        DiscoveryError.UDP_DATA_ERROR -> "数据发送失败"
-        DiscoveryError.MULTICAST_ERROR -> "组播不可用"
     }
 
     override fun onCleared() {
