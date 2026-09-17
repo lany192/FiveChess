@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- 墨绿主色（深色反转型） -->
+    <color name="primary">#9FCBB4</color>
+    <color name="on_primary">#0E3527</color>
+    <color name="primary_container">#26493B</color>
+    <color name="on_primary_container">#C8EAD8</color>
+    <!-- 暖棕辅色 -->
+    <color name="secondary">#D6B98C</color>
+    <color name="secondary_container">#54432A</color>
+    <!-- 中性表面 -->
+    <color name="background">#14120E</color>
+    <color name="on_background">#E7E1D6</color>
+    <color name="surface">#1B1914</color>
+    <color name="on_surface">#E7E1D6</color>
+    <color name="surface_variant">#454239</color>
+    <color name="on_surface_variant">#C9C2B3</color>
+    <color name="outline">#948D7E</color>
+    <color name="error">#F2B8B5</color>
+    <!-- 棋盘（深色下降明度，保持木质观感） -->
+    <color name="board_surface">#C99C63</color>
+    <color name="board_frame">#A67C45</color>
+    <color name="board_line">#3E2E1C</color>
+    <!-- 棋子不随主题变化 -->
+    <color name="stone_black">#3C3F41</color>
+    <color name="stone_white">#F5F4F0</color>
+    <color name="stone_white_stroke">#4A4640</color>
+    <color name="win_mark">#FF6E5E</color>
+</resources>

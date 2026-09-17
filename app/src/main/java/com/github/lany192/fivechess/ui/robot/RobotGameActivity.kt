@@ -3,7 +3,6 @@ package com.github.lany192.fivechess.ui.robot
 import android.os.Bundle
 import android.view.View
 import androidx.activity.viewModels
-import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.ViewModelProvider
@@ -16,6 +15,8 @@ import com.github.lany192.fivechess.data.settings.SharedPrefsAiLevelStore
 import com.github.lany192.fivechess.databinding.GameSingleBinding
 import com.github.lany192.fivechess.domain.ai.Difficulty
 import com.github.lany192.fivechess.domain.model.Side
+import com.github.lany192.fivechess.ui.common.setupEdgeToEdge
+import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import kotlinx.coroutines.launch
 
 /**
@@ -36,6 +37,8 @@ class RobotGameActivity : AppCompatActivity() {
         super.onCreate(savedInstanceState)
         binding = GameSingleBinding.inflate(layoutInflater)
         setContentView(binding.root)
+        setupEdgeToEdge(binding.root)
+        binding.toolbar.setNavigationOnClickListener { finish() }
         binding.gameView.configure(BOARD_SIZE, BOARD_SIZE)
         binding.gameView.onCellTapped = { x, y ->
             viewModel.dispatch(RobotGameIntent.BoardTap(x, y))
@@ -82,9 +85,10 @@ class RobotGameActivity : AppCompatActivity() {
     }
 
     private fun showGameOverDialog(winner: Side) {
-        val message = if (winner == Side.BLACK) "黑方胜！" else "白方胜！"
-        AlertDialog.Builder(this)
+        val message = if (winner == Side.BLACK) R.string.msg_black_win else R.string.msg_white_win
+        MaterialAlertDialogBuilder(this)
             .setCancelable(false)
+            .setTitle(R.string.dialog_title_game_over)
             .setMessage(message)
             .setPositiveButton(R.string.Continue) { _, _ ->
                 viewModel.dispatch(RobotGameIntent.RestartClicked)
@@ -99,7 +103,7 @@ class RobotGameActivity : AppCompatActivity() {
             getString(R.string.ai_level_medium),
             getString(R.string.ai_level_hard),
         )
-        AlertDialog.Builder(this)
+        MaterialAlertDialogBuilder(this)
             .setTitle(getString(R.string.difficulty))
             .setSingleChoiceItems(names, current.ordinal) { dialog, which ->
                 dialog.dismiss()

@@ -40,6 +40,11 @@ class WifiGameViewModel(
     private var connected = false
     private var awaitingRollbackResponse = false
     private var rollbackDialogShowing = false
+    private var awaitingDrawResponse = false
+    private var drawDialogShowing = false
+
+    /** 和棋/认输宣告的终局（引擎规则之外的 VM 层终局，落子与协商一律拦截） */
+    private var declaredOver = false
 
     init {
         engine.start(GameMode.LAN, mySide = mySide)
@@ -54,11 +59,12 @@ class WifiGameViewModel(
         when (intent) {
             is WifiGameIntent.BoardTap -> tryLocalMove(intent.x, intent.y)
             WifiGameIntent.RestartClicked -> {
+                resetRoundFlags()
                 consume(engine.restart())
                 client.requestRestart()
             }
             WifiGameIntent.RollbackClicked -> {
-                if (!connected || awaitingRollbackResponse || rollbackDialogShowing) return
+                if (!connected || declaredOver || awaitingRollbackResponse || rollbackDialogShowing) return
                 val hasMyStone = engine.snapshot().moves.any { it.side == mySide }
                 if (!hasMyStone) return
                 awaitingRollbackResponse = true
@@ -73,16 +79,47 @@ class WifiGameViewModel(
                 rollbackDialogShowing = false
                 client.rejectRollback()
             }
+            WifiGameIntent.DrawClicked -> {
+                if (!connected || declaredOver || awaitingDrawResponse || drawDialogShowing) return
+                if (engine.snapshot().over) return
+                awaitingDrawResponse = true
+                client.askDraw()
+                viewModelScope.launch { emitEffect(WifiGameEffect.ShowMessage("已发送求和请求")) }
+            }
+            WifiGameIntent.DrawAgreed -> {
+                drawDialogShowing = false
+                if (declaredOver || engine.snapshot().over) {
+                    client.rejectDraw()
+                    return
+                }
+                client.agreeDraw()
+                declareDraw()
+            }
+            WifiGameIntent.DrawRejected -> {
+                drawDialogShowing = false
+                client.rejectDraw()
+            }
+            WifiGameIntent.ResignClicked -> {
+                if (!connected || declaredOver || engine.snapshot().over) return
+                viewModelScope.launch { emitEffect(WifiGameEffect.ShowResignConfirm) }
+            }
+            WifiGameIntent.ResignConfirmed -> {
+                if (declaredOver || engine.snapshot().over) return
+                client.sendResign()
+                declareWinner(mySide.opposite)
+            }
         }
     }
 
     private fun tryLocalMove(x: Int, y: Int) {
-        if (!connected || awaitingRollbackResponse || rollbackDialogShowing) return
+        if (!connected || declaredOver || awaitingRollbackResponse || rollbackDialogShowing) return
         val snapshot = engine.snapshot()
         if (snapshot.over || snapshot.active != mySide) return
         val result = engine.applyMove(x, y)
         consume(result)
         result.events.filterIsInstance<GameEvent.MoveApplied>().firstOrNull()?.let {
+            // 局面已变，此前发出的求和请求失效
+            awaitingDrawResponse = false
             client.sendMove(it.move.x, it.move.y)
         }
     }
@@ -115,8 +152,15 @@ class WifiGameViewModel(
                     emitEffect(WifiGameEffect.Exit)
                 }
             }
-            is NetEvent.ChessMove -> consume(engine.applyRemoteMove(event.x, event.y, mySide.opposite))
+            is NetEvent.ChessMove -> {
+                awaitingDrawResponse = false
+                consume(engine.applyRemoteMove(event.x, event.y, mySide.opposite))
+            }
             NetEvent.RollbackAsked -> {
+                if (declaredOver) {
+                    client.rejectRollback()
+                    return
+                }
                 if (rollbackDialogShowing || awaitingRollbackResponse) return
                 rollbackDialogShowing = true
                 viewModelScope.launch { emitEffect(WifiGameEffect.ShowRollbackRequest) }
@@ -131,10 +175,57 @@ class WifiGameViewModel(
                 viewModelScope.launch { emitEffect(WifiGameEffect.ShowMessage("对方拒绝了你的请求")) }
             }
             NetEvent.RestartRequested -> {
+                resetRoundFlags()
                 consume(engine.restart())
                 viewModelScope.launch { emitEffect(WifiGameEffect.ShowMessage("对方已重新开始")) }
             }
+            NetEvent.DrawAsked -> {
+                if (declaredOver || engine.snapshot().over) {
+                    // 终局期间的求和直接拒绝，避免请求方悬挂
+                    client.rejectDraw()
+                    return
+                }
+                if (drawDialogShowing || awaitingDrawResponse) return
+                drawDialogShowing = true
+                viewModelScope.launch { emitEffect(WifiGameEffect.ShowDrawRequest) }
+            }
+            NetEvent.DrawAgreed -> {
+                awaitingDrawResponse = false
+                if (declaredOver || engine.snapshot().over) return
+                declareDraw()
+            }
+            NetEvent.DrawRejected -> {
+                awaitingDrawResponse = false
+                viewModelScope.launch { emitEffect(WifiGameEffect.ShowMessage("对方拒绝求和")) }
+            }
+            NetEvent.Resigned -> {
+                if (declaredOver || engine.snapshot().over) return
+                declareWinner(mySide)
+            }
         }
+    }
+
+    /** 和棋终局：双方胜场均不加，两端对称 */
+    private fun declareDraw() {
+        declaredOver = true
+        viewModelScope.launch { emitEffect(WifiGameEffect.ShowDrawEnd) }
+    }
+
+    /** 宣告终局并结算胜场：两端从同一事件各自推导 winner，胜场计数保持一致 */
+    private fun declareWinner(winner: Side) {
+        declaredOver = true
+        when (winner) {
+            Side.BLACK -> blackWins++
+            Side.WHITE -> whiteWins++
+        }
+        updateState { it.copy(blackWins = blackWins, whiteWins = whiteWins) }
+        viewModelScope.launch { emitEffect(WifiGameEffect.ShowGameResult(winner == mySide)) }
+    }
+
+    private fun resetRoundFlags() {
+        declaredOver = false
+        awaitingDrawResponse = false
+        drawDialogShowing = false
     }
 
     private fun consume(result: EngineResult) {

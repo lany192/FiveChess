@@ -22,4 +22,12 @@ sealed interface NetEvent {
     data object RollbackRejected : NetEvent
 
     data object RestartRequested : NetEvent
+
+    data object DrawAsked : NetEvent
+
+    data object DrawAgreed : NetEvent
+
+    data object DrawRejected : NetEvent
+
+    data object Resigned : NetEvent
 }

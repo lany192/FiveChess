@@ -1,5 +1,29 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <color name="black">#FF000000</color>
-    <color name="white">#FFFFFFFF</color>
+    <!-- 墨绿主色 -->
+    <color name="primary">#2F5D4C</color>
+    <color name="on_primary">#FFFFFF</color>
+    <color name="primary_container">#CFE6DA</color>
+    <color name="on_primary_container">#10261E</color>
+    <!-- 暖棕辅色 -->
+    <color name="secondary">#8A6B45</color>
+    <color name="secondary_container">#F0DFC8</color>
+    <!-- 中性表面 -->
+    <color name="background">#F7F4EC</color>
+    <color name="on_background">#1C1B17</color>
+    <color name="surface">#FDFAF3</color>
+    <color name="on_surface">#1C1B17</color>
+    <color name="surface_variant">#E8E3D7</color>
+    <color name="on_surface_variant">#4A463D</color>
+    <color name="outline">#7B7568</color>
+    <color name="error">#BA1A1A</color>
+    <!-- 棋盘 -->
+    <color name="board_surface">#E6C48C</color>
+    <color name="board_frame">#C89E60</color>
+    <color name="board_line">#6B4E2E</color>
+    <!-- 棋子（物理物件，深浅主题同值） -->
+    <color name="stone_black">#3C3F41</color>
+    <color name="stone_white">#F5F4F0</color>
+    <color name="stone_white_stroke">#4A4640</color>
+    <color name="win_mark">#D54533</color>
 </resources>

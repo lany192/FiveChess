@@ -17,6 +17,8 @@ import androidx.lifecycle.viewmodel.viewModelFactory
 import com.github.lany192.fivechess.R
 import com.github.lany192.fivechess.databinding.GameNetBinding
 import com.github.lany192.fivechess.domain.model.Side
+import com.github.lany192.fivechess.ui.common.setupEdgeToEdge
+import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import kotlinx.coroutines.launch
 
 class WifiGameActivity : AppCompatActivity() {
@@ -38,12 +40,14 @@ class WifiGameActivity : AppCompatActivity() {
         super.onCreate(savedInstanceState)
         val extras = intent.extras
         if (extras == null || !extras.containsKey(EXTRA_IS_SERVER)) {
-            Toast.makeText(this, "建立网络失败,请重试", Toast.LENGTH_SHORT).show()
+            Toast.makeText(this, R.string.msg_connect_failed, Toast.LENGTH_SHORT).show()
             finish()
             return
         }
         binding = GameNetBinding.inflate(layoutInflater)
         setContentView(binding.root)
+        setupEdgeToEdge(binding.root)
+        binding.toolbar.setNavigationOnClickListener { finish() }
         val isServer = extras.getBoolean(EXTRA_IS_SERVER)
         binding.blackName.setText(if (isServer) R.string.myself else R.string.challenger)
         binding.whiteName.setText(if (isServer) R.string.challenger else R.string.myself)
@@ -58,6 +62,12 @@ class WifiGameActivity : AppCompatActivity() {
         binding.rollback.setOnClickListener {
             viewModel.dispatch(WifiGameIntent.RollbackClicked)
         }
+        binding.requestEqual.setOnClickListener {
+            viewModel.dispatch(WifiGameIntent.DrawClicked)
+        }
+        binding.fail.setOnClickListener {
+            viewModel.dispatch(WifiGameIntent.ResignClicked)
+        }
         observeViewModel()
     }
 
@@ -71,6 +81,9 @@ class WifiGameActivity : AppCompatActivity() {
                             WifiGameEffect.DismissConnecting -> waitDialog?.dismiss()
                             is WifiGameEffect.ShowGameResult -> showGameResultDialog(effect.iWon)
                             WifiGameEffect.ShowRollbackRequest -> showRollbackDialog()
+                            WifiGameEffect.ShowDrawRequest -> showDrawRequestDialog()
+                            WifiGameEffect.ShowResignConfirm -> showResignConfirmDialog()
+                            WifiGameEffect.ShowDrawEnd -> showDrawEndDialog()
                             is WifiGameEffect.ShowMessage -> Toast.makeText(
                                 this@WifiGameActivity, effect.text, Toast.LENGTH_SHORT,
                             ).show()
@@ -97,8 +110,8 @@ class WifiGameActivity : AppCompatActivity() {
 
     private fun showWaitDialog() {
         if (waitDialog == null) {
-            waitDialog = AlertDialog.Builder(this)
-                .setMessage("建立连接中，请稍后")
+            waitDialog = MaterialAlertDialogBuilder(this)
+                .setMessage(R.string.msg_connecting)
                 .setCancelable(true)
                 .create()
         }
@@ -106,8 +119,9 @@ class WifiGameActivity : AppCompatActivity() {
     }
 
     private fun showGameResultDialog(iWon: Boolean) {
-        val message = if (iWon) "恭喜你！你赢了！" else "很遗憾！你输了！"
-        AlertDialog.Builder(this)
+        val message = if (iWon) R.string.msg_i_won else R.string.msg_i_lost
+        MaterialAlertDialogBuilder(this)
+            .setTitle(R.string.dialog_title_game_over)
             .setMessage(message)
             .setPositiveButton(R.string.Continue) { _, _ ->
                 viewModel.dispatch(WifiGameIntent.RestartClicked)
@@ -117,8 +131,8 @@ class WifiGameActivity : AppCompatActivity() {
     }
 
     private fun showRollbackDialog() {
-        AlertDialog.Builder(this)
-            .setMessage("是否同意对方悔棋")
+        MaterialAlertDialogBuilder(this)
+            .setMessage(R.string.msg_rollback_ask)
             .setCancelable(false)
             .setPositiveButton(R.string.agree) { _, _ ->
                 viewModel.dispatch(WifiGameIntent.RollbackAgreed)
@@ -126,6 +140,41 @@ class WifiGameActivity : AppCompatActivity() {
             .setNegativeButton(R.string.reject) { _, _ ->
                 viewModel.dispatch(WifiGameIntent.RollbackRejected)
             }
+            .show()
+    }
+
+    private fun showDrawRequestDialog() {
+        MaterialAlertDialogBuilder(this)
+            .setMessage(R.string.msg_draw_ask)
+            .setCancelable(false)
+            .setPositiveButton(R.string.agree) { _, _ ->
+                viewModel.dispatch(WifiGameIntent.DrawAgreed)
+            }
+            .setNegativeButton(R.string.reject) { _, _ ->
+                viewModel.dispatch(WifiGameIntent.DrawRejected)
+            }
+            .show()
+    }
+
+    private fun showResignConfirmDialog() {
+        MaterialAlertDialogBuilder(this)
+            .setMessage(R.string.msg_resign_confirm)
+            .setPositiveButton(R.string.ok) { _, _ ->
+                viewModel.dispatch(WifiGameIntent.ResignConfirmed)
+            }
+            .setNegativeButton(R.string.cancel, null)
+            .show()
+    }
+
+    private fun showDrawEndDialog() {
+        MaterialAlertDialogBuilder(this)
+            .setTitle(R.string.dialog_title_game_over)
+            .setMessage(R.string.msg_draw_end)
+            .setCancelable(false)
+            .setPositiveButton(R.string.Continue) { _, _ ->
+                viewModel.dispatch(WifiGameIntent.RestartClicked)
+            }
+            .setNegativeButton(R.string.exit) { _, _ -> finish() }
             .show()
     }
 

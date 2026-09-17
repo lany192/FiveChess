@@ -1,155 +1,166 @@
 <?xml version="1.0" encoding="utf-8"?>
 <ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="match_parent">
 
     <LinearLayout
         android:layout_width="match_parent"
-        android:layout_height="match_parent"
+        android:layout_height="wrap_content"
         android:orientation="vertical"
-        android:padding="16dp">
+        android:padding="@dimen/spacing_m">
 
-
-        <!-- Score area -->
-
-        <LinearLayout
+        <com.google.android.material.appbar.MaterialToolbar
+            android:id="@+id/toolbar"
             android:layout_width="match_parent"
-            android:layout_height="match_parent"
-            android:baselineAligned="false"
-            android:orientation="horizontal"
-            android:paddingLeft="20dp"
-            android:paddingRight="20dp">
+            android:layout_height="wrap_content"
+            android:background="@android:color/transparent"
+            app:navigationIcon="?attr/homeAsUpIndicator"
+            app:title="@string/fight"
+            app:titleTextColor="?attr/colorOnSurface" />
+
+        <!-- 记分卡 -->
+        <com.google.android.material.card.MaterialCardView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="@dimen/spacing_s"
+            app:cardElevation="0dp"
+            app:strokeColor="?attr/colorOutlineVariant"
+            app:strokeWidth="1dp">
 
             <LinearLayout
-                android:id="@+id/black_area"
-                android:layout_width="0dp"
+                android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_gravity="center_vertical"
-                android:layout_weight="2"
-                android:orientation="horizontal">
+                android:baselineAligned="false"
+                android:gravity="center_vertical"
+                android:orientation="horizontal"
+                android:padding="@dimen/spacing_m">
 
-                <ImageView
-                    android:layout_width="wrap_content"
+                <LinearLayout
+                    android:id="@+id/black_area"
+                    android:layout_width="0dp"
                     android:layout_height="wrap_content"
-                    android:layout_gravity="center_vertical"
-                    android:src="@drawable/black_chess" />
+                    android:gravity="center_vertical"
+                    android:layout_weight="1"
+                    android:orientation="horizontal">
+
+                    <ImageView
+                        android:layout_width="24dp"
+                        android:layout_height="24dp"
+                        android:importantForAccessibility="no"
+                        android:src="@drawable/black_chess" />
+
+                    <TextView
+                        android:id="@+id/black_name"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginStart="@dimen/spacing_s"
+                        android:text="@string/black"
+                        android:textAppearance="?attr/textAppearanceTitleSmall" />
+
+                    <ImageView
+                        android:id="@+id/black_active"
+                        android:layout_width="8dp"
+                        android:layout_height="8dp"
+                        android:layout_marginStart="@dimen/spacing_s"
+                        android:importantForAccessibility="no"
+                        android:src="@drawable/active_dot" />
+
+                    <TextView
+                        android:id="@+id/black_win"
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:gravity="end"
+                        android:textAppearance="?attr/textAppearanceBodyLarge" />
+                </LinearLayout>
 
                 <TextView
-                    android:id="@+id/black_name"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:layout_gravity="center_vertical"
-                    android:text="@string/black"
-                    android:textColor="@android:color/black"
-                    android:textSize="16sp" />
+                    android:layout_marginHorizontal="@dimen/spacing_s"
+                    android:text=":"
+                    android:textColor="?attr/colorOnSurfaceVariant" />
 
-                <ImageView
-                    android:id="@+id/black_active"
-                    android:layout_width="wrap_content"
+                <LinearLayout
+                    android:id="@+id/white_area"
+                    android:layout_width="0dp"
                     android:layout_height="wrap_content"
-                    android:layout_gravity="center_vertical"
-                    android:src="@drawable/finger" />
+                    android:gravity="center_vertical"
+                    android:layout_weight="1"
+                    android:orientation="horizontal">
 
-                <TextView
-                    android:id="@+id/black_win"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:layout_gravity="center_vertical"
-                    android:gravity="right"
-                    android:textColor="@android:color/black"
-                    android:textSize="16sp" />
+                    <TextView
+                        android:id="@+id/white_win"
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:gravity="start"
+                        android:textAppearance="?attr/textAppearanceBodyLarge" />
+
+                    <ImageView
+                        android:id="@+id/white_active"
+                        android:layout_width="8dp"
+                        android:layout_height="8dp"
+                        android:layout_marginEnd="@dimen/spacing_s"
+                        android:importantForAccessibility="no"
+                        android:src="@drawable/active_dot" />
+
+                    <TextView
+                        android:id="@+id/white_name"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginEnd="@dimen/spacing_s"
+                        android:text="@string/white"
+                        android:textAppearance="?attr/textAppearanceTitleSmall" />
+
+                    <ImageView
+                        android:id="@+id/white_chess"
+                        android:layout_width="24dp"
+                        android:layout_height="24dp"
+                        android:importantForAccessibility="no"
+                        android:src="@drawable/white_chess" />
+                </LinearLayout>
             </LinearLayout>
+        </com.google.android.material.card.MaterialCardView>
 
-            <TextView
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:layout_gravity="center_vertical"
-                android:layout_weight="0"
-                android:text=":"
-                android:textColor="@android:color/black" />
-
-            <RelativeLayout
-                android:id="@+id/white_area"
-                android:layout_width="0dp"
-                android:layout_height="match_parent"
-                android:layout_weight="2">
-
-                <ImageView
-                    android:id="@+id/white_chess"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:layout_alignParentRight="true"
-                    android:layout_centerVertical="true"
-                    android:src="@drawable/red_chess" />
-
-                <TextView
-                    android:id="@+id/white_name"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:layout_centerVertical="true"
-                    android:layout_toLeftOf="@id/white_chess"
-                    android:text="@string/white"
-                    android:textColor="@android:color/black"
-                    android:textSize="16sp" />
-
-                <ImageView
-                    android:id="@+id/white_active"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:layout_centerVertical="true"
-                    android:layout_toLeftOf="@id/white_name"
-                    android:src="@drawable/finger" />
-
-                <TextView
-                    android:id="@+id/white_win"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:layout_centerVertical="true"
-                    android:layout_toLeftOf="@id/white_active"
-                    android:gravity="left"
-                    android:textColor="@android:color/black"
-                    android:textSize="16sp" />
-            </RelativeLayout>
-        </LinearLayout>
-        <!-- Game area -->
-        <com.github.lany192.fivechess.ui.common.GameBoardView
-            android:id="@+id/game_view"
+        <!-- 棋盘框：SurfaceView 为独立层圆角裁不到，故用直角木框 -->
+        <com.google.android.material.card.MaterialCardView
             android:layout_width="match_parent"
-            android:layout_height="wrap_content" />
-        <!-- Control Button -->
+            android:layout_height="wrap_content"
+            android:layout_marginTop="@dimen/spacing_m"
+            app:cardBackgroundColor="@color/board_frame"
+            app:cardCornerRadius="0dp"
+            app:cardElevation="2dp"
+            app:contentPadding="10dp">
+
+            <com.github.lany192.fivechess.ui.common.GameBoardView
+                android:id="@+id/game_view"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content" />
+        </com.google.android.material.card.MaterialCardView>
 
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_below="@id/game_view"
-            android:layout_centerHorizontal="true"
-            android:layout_marginTop="20dp"
+            android:layout_marginTop="@dimen/spacing_m"
             android:orientation="horizontal">
 
-            <Button
+            <com.google.android.material.button.MaterialButton
                 android:id="@+id/restart"
-                android:layout_width="wrap_content"
+                android:layout_width="0dp"
                 android:layout_height="wrap_content"
-                android:layout_margin="8dp"
-                android:background="@drawable/btn_circle_style"
-                android:padding="16dp"
-                android:textColor="@android:color/white"
-                android:text="@string/restart"
-                android:textSize="14sp" />
+                android:layout_weight="1"
+                android:text="@string/restart" />
 
-            <Button
+            <com.google.android.material.button.MaterialButton
                 android:id="@+id/rollback"
-                android:layout_width="wrap_content"
+                style="@style/Widget.Material3.Button.OutlinedButton"
+                android:layout_width="0dp"
                 android:layout_height="wrap_content"
-                android:layout_margin="8dp"
-                android:background="@drawable/btn_circle_style"
-                android:padding="16dp"
-                android:textColor="@android:color/white"
-                android:text="@string/rollback"
-                android:textSize="14sp" />
-
-
+                android:layout_marginStart="@dimen/spacing_s"
+                android:layout_weight="1"
+                android:text="@string/rollback" />
         </LinearLayout>
-
     </LinearLayout>
 </ScrollView>

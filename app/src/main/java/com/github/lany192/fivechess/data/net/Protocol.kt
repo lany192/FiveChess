@@ -22,6 +22,12 @@ enum class TcpType(val b: Byte) {
 
     /** 新增：双方同步重开（旧版收到未知字节会忽略，互通安全） */
     RESTART(5),
+
+    /** 新增：求和协商与认输宣告（旧版收到未知字节会忽略，互通安全） */
+    DRAW_ASK(6),
+    DRAW_AGREE(7),
+    DRAW_REJECT(8),
+    RESIGN(9),
 }
 
 /** 旧 onError 的错误码语义 */

@@ -3,20 +3,17 @@
     android:height="108dp"
     android:viewportWidth="108"
     android:viewportHeight="108">
-    <!-- 与 monochrome 同构图：4×4 网格 + 两黑一白，扁平风，内容收在中心 72dp 安全区 -->
     <path
         android:pathData="M30,30 L78,30 M30,46 L78,46 M30,62 L78,62 M30,78 L78,78 M30,30 L30,78 M46,30 L46,78 M62,30 L62,78 M78,30 L78,78"
         android:strokeWidth="2.5"
-        android:strokeColor="@color/board_line" />
+        android:strokeColor="#000" />
     <path
-        android:fillColor="@color/stone_black"
+        android:fillColor="#000"
         android:pathData="M46,46 m-6.5,0 a6.5,6.5 0 1,0 13,0 a6.5,6.5 0 1,0 -13,0" />
     <path
-        android:fillColor="@color/stone_black"
-        android:pathData="M62,30 m-6.5,0 a6.5,6.5 0 1,0 13,0 a6.5,6.5 0 1,0 -13,0" />
-    <path
-        android:fillColor="@color/stone_white"
-        android:strokeColor="@color/stone_white_stroke"
-        android:strokeWidth="1.5"
+        android:fillColor="#000"
         android:pathData="M62,62 m-6.5,0 a6.5,6.5 0 1,0 13,0 a6.5,6.5 0 1,0 -13,0" />
+    <path
+        android:fillColor="#000"
+        android:pathData="M62,30 m-6.5,0 a6.5,6.5 0 1,0 13,0 a6.5,6.5 0 1,0 -13,0" />
 </vector>

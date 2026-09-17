@@ -207,4 +207,43 @@ class ProtocolTest {
         assertEquals(1, frames.size)
         assertNull(frames[0].typeEnum())
     }
+
+    // ---------- 求和/认输（新增消息类型） ----------
+
+    @Test
+    fun `求和认输字节值冻结`() {
+        assertEquals(6.toByte(), TcpType.DRAW_ASK.b)
+        assertEquals(7.toByte(), TcpType.DRAW_AGREE.b)
+        assertEquals(8.toByte(), TcpType.DRAW_REJECT.b)
+        assertEquals(9.toByte(), TcpType.RESIGN.b)
+    }
+
+    @Test
+    fun `求和认输帧字节布局`() {
+        assertArrayEquals(byteArrayOf(2, 6), Protocol.encodeTcp(TcpType.DRAW_ASK))
+        assertArrayEquals(byteArrayOf(2, 7), Protocol.encodeTcp(TcpType.DRAW_AGREE))
+        assertArrayEquals(byteArrayOf(2, 8), Protocol.encodeTcp(TcpType.DRAW_REJECT))
+        assertArrayEquals(byteArrayOf(2, 9), Protocol.encodeTcp(TcpType.RESIGN))
+    }
+
+    @Test
+    fun `新类型粘包解析`() {
+        val reader = Protocol.TcpFrameReader()
+        val data = Protocol.encodeTcp(TcpType.DRAW_ASK) +
+                Protocol.encodeTcp(TcpType.RESIGN) +
+                Protocol.encodeTcp(TcpType.DRAW_AGREE)
+        val frames = reader.feed(data)
+        assertEquals(3, frames.size)
+        assertEquals(TcpType.DRAW_ASK, frames[0].typeEnum())
+        assertEquals(TcpType.RESIGN, frames[1].typeEnum())
+        assertEquals(TcpType.DRAW_AGREE, frames[2].typeEnum())
+    }
+
+    @Test
+    fun `新类型typeEnum映射`() {
+        assertEquals(TcpType.DRAW_ASK, TcpFrame(6, ByteArray(0)).typeEnum())
+        assertEquals(TcpType.DRAW_AGREE, TcpFrame(7, ByteArray(0)).typeEnum())
+        assertEquals(TcpType.DRAW_REJECT, TcpFrame(8, ByteArray(0)).typeEnum())
+        assertEquals(TcpType.RESIGN, TcpFrame(9, ByteArray(0)).typeEnum())
+    }
 }

@@ -9,6 +9,11 @@ sealed interface WifiGameIntent {
     data object RollbackClicked : WifiGameIntent
     data object RollbackAgreed : WifiGameIntent
     data object RollbackRejected : WifiGameIntent
+    data object DrawClicked : WifiGameIntent
+    data object DrawAgreed : WifiGameIntent
+    data object DrawRejected : WifiGameIntent
+    data object ResignClicked : WifiGameIntent
+    data object ResignConfirmed : WifiGameIntent
 }
 
 data class WifiGameState(
@@ -24,6 +29,9 @@ sealed interface WifiGameEffect {
     data object DismissConnecting : WifiGameEffect
     data class ShowGameResult(val iWon: Boolean) : WifiGameEffect
     data object ShowRollbackRequest : WifiGameEffect
+    data object ShowDrawRequest : WifiGameEffect
+    data object ShowResignConfirm : WifiGameEffect
+    data object ShowDrawEnd : WifiGameEffect
     data class ShowMessage(val text: String) : WifiGameEffect
     data object Exit : WifiGameEffect
 }

@@ -1,43 +1,44 @@
 # AGENTS.md
 
-This file provides guidance to the AI agent when working with code in this repository.
+本文件为 AI 代理在本仓库工作时提供指引。
 
-## Project
+## 项目
 
-Android Gomoku (五子棋) app, single `app` module, 100% Kotlin. Hand-rolled MVI (no MVI framework, no DI) with View-based UI + ViewBinding (no Compose). Three game modes: local 2-player (`ui/person`), vs AI with 3 difficulty levels (`ui/robot`, engine in `domain/ai/RobotAI.kt`), LAN WiFi (`ui/connect` + `ui/wifi`).
+Android 五子棋应用，单 `app` 模块，100% Kotlin。手写 MVI（无 MVI 框架、无 DI），View 体系 + ViewBinding（无 Compose）。三种对局模式：本地双人（`ui/person`）、人机三档难度（`ui/robot`，引擎在 `domain/ai/RobotAI.kt`）、局域网 WiFi 联机（`ui/connect` + `ui/wifi`）。
 
-## Build
+## 构建
 
-- Dependencies are managed in `gradle/libs.versions.toml` (version catalog); add new deps there, not inline.
-- Repositories use the Aliyun mirror first (China network) in `settings.gradle.kts`; resolution failures are often mirror-related, not missing artifacts.
-- Java 11 / `jvmTarget = 11`, compileSdk/targetSdk 36, minSdk 24.
-- AGP 9.x ships Kotlin 2.2 built-in — do NOT add `org.jetbrains.kotlin.android` to plugins; the Kotlin stdlib is injected automatically.
-- Tests: `./gradlew :app:testDebugUnitTest` (JVM tests for `domain/engine`, `domain/ai`, and the wire protocol in `data/net/Protocol.kt`).
+- 依赖统一在 `gradle/libs.versions.toml`（version catalog）管理；新增依赖写在那里，不要内联。
+- `settings.gradle.kts` 中阿里云镜像仓库优先（国内网络）；依赖解析失败通常是镜像问题，而非构件缺失。
+- Java 11 / `jvmTarget = 11`，compileSdk/targetSdk 36，minSdk 24。
+- AGP 9.x 内置 Kotlin 2.2 —— 不要在 plugins 里加 `org.jetbrains.kotlin.android`；Kotlin stdlib 会自动注入。
+- 测试：`./gradlew :app:testDebugUnitTest`（覆盖 `domain/engine`、`domain/ai` 与 `data/net/Protocol.kt` 有线协议的 JVM 测试）。
 
-## Architecture
+## 架构
 
-Layers, outer may depend on inner, never the reverse:
+分层依赖，外层可依赖内层，禁止反向：
 
-- `domain/` — pure Kotlin, **no `android.*` imports** (this is what keeps it JVM-testable). `engine/GameEngine` owns rules and returns `EngineResult(state, events)`; `model/` holds immutable snapshots (`GameState`, `Side` where BLACK=1/WHITE=2 matching the AI's `Array<IntArray>` codes); `ai/RobotAI` + `ai/Difficulty` (EASY/MEDIUM/HARD).
-- `core/mvi/MviViewModel` — base class: Intents flow through an unlimited `Channel` processed serially (mirrors the old Handler main-thread queue); State is a `StateFlow` rendered idempotently; Effects are a `SharedFlow(replay=0)` for one-shot toast/dialog/navigation. Each feature has a `<Feature>Contract.kt` (Intent/State/Effect), `<Feature>ViewModel.kt`, `<Feature>Activity.kt` under `ui/<feature>/`.
-- `data/net/` — `Protocol.kt` (byte-level codec + `TcpFrameReader`), `LanDiscoveryManager` (UDP discovery/handshake/chat), `LanGameClient` (TCP gameplay). Blocking `DatagramSocket.receive()` does not respond to coroutine cancellation — stop by closing the socket, then cancelling the scope.
-- `ui/common/GameBoardView` — SurfaceView board; `render(state)` is the single render entry, `onCellTapped` is the single input callback; it holds no game logic.
+- `domain/` —— 纯 Kotlin，**禁止 `android.*` 导入**（这是保持 JVM 可测的前提）。`engine/GameEngine` 掌管规则并返回 `EngineResult(state, events)`；`model/` 持有不可变快照（`GameState`、`Side`，其中 BLACK=1/WHITE=2，与 AI 的 `Array<IntArray>` 编码一致）；`ai/RobotAI` + `ai/Difficulty`（EASY/MEDIUM/HARD）。
+- `core/mvi/MviViewModel` —— 基类：Intent 经无限容量 `Channel` 串行处理（对齐旧 Handler 主线程队列语义）；State 是 `StateFlow`，渲染须幂等；Effect 是 `SharedFlow(replay=0)`，承载一次性 toast/弹窗/导航。每个特性在 `ui/<feature>/` 下含 `<Feature>Contract.kt`（Intent/State/Effect）、`<Feature>ViewModel.kt`、`<Feature>Activity.kt`。
+- `data/net/` —— `Protocol.kt`（字节级编解码 + `TcpFrameReader`）、`LanDiscoveryManager`（UDP 发现/握手/聊天）、`LanGameClient`（TCP 对局）。阻塞式 `DatagramSocket.receive()` 不响应协程取消 —— 须先关闭 socket 再取消 scope 来停止。
+- `ui/common/GameBoardView` —— SurfaceView 棋盘；`render(state)` 是唯一渲染入口，`onCellTapped` 是唯一输入回调；自身不含任何对局逻辑。
 
-## Wire-protocol freeze (interop between devices)
+## 有线协议冻结（设备间互通）
 
-The LAN protocol bytes are frozen; two devices on different app versions must stay compatible. Only ADDING new message-type bytes is allowed.
+局域网协议字节已冻结；不同版本的两台设备必须保持兼容。只允许**追加**新的消息类型字节。
 
-- UDP multicast discovery 230.0.2.2:1688: broadcast frame `[nameLen][name][ipLen][ip][type末字节]` (JOIN=0 / EXIT=1); a JOIN broadcast is answered by a single-cast typed UDP packet, an EXIT is not.
-- UDP unicast port 2599: `[type][nameLen][name][ipLen][ip]` with ASK=11 / AGREE=12 / REJECT=13 / UDP_JOIN=0; CHAT=14 appends `[chatLen][chat]`.
-- TCP port 8899 gameplay: `[len][type][payload]` where len is the TOTAL frame length; ADD_CHESS=0 (payload `[x][y]`), ROLLBACK_ASK=2 / ROLLBACK_AGREE=3 / ROLLBACK_REJECT=4, RESTART=5.
-- Encoder and decoder live in the same `Protocol.kt` and are covered by `ProtocolTest` byte-freeze fixtures — change both sides together, and test on two real devices on the same LAN.
+- UDP 组播发现 230.0.2.2:1688：广播帧 `[nameLen][name][ipLen][ip][type末字节]`（JOIN=0 / EXIT=1）；JOIN 广播以单播带类型 UDP 包应答，EXIT 不应答。
+- UDP 单播端口 2599：`[type][nameLen][name][ipLen][ip]`，ASK=11 / AGREE=12 / REJECT=13 / UDP_JOIN=0；CHAT=14 追加 `[chatLen][chat]`。
+- TCP 端口 8899 对局：`[len][type][payload]`，len 为含自身的整帧总长；ADD_CHESS=0（payload `[x][y]`）、ROLLBACK_ASK=2 / ROLLBACK_AGREE=3 / ROLLBACK_REJECT=4、RESTART=5、DRAW_ASK=6 / DRAW_AGREE=7 / DRAW_REJECT=8、RESIGN=9。
+- 编码与解码同在 `Protocol.kt`，由 `ProtocolTest` 字节冻结用例守护 —— 两侧必须同步修改，并在同一局域网的真机双端验证。
 
-## Behavior notes
+## 行为要点
 
-- LAN roles: the requested side (server) plays BLACK and moves first; the requester (client) plays WHITE.
-- LAN rollback removes, on both peers, the requester's last move and everything after it (derived from the same move history), and restarts are synchronized via the RESTART message — don't regress to per-side single-stone removal or local-only clears.
-- Win condition is 5-in-a-row contiguous in 4 directions; board is 15×15 (`GameEngine` default).
+- 联机角色：被请求方（server）执黑先手；发起方（client）执白。
+- 联机悔棋：双端各自移除"请求方最后一手及其之后所有棋子"（从同一份落子历史推导）；重开通过 RESTART 消息同步 —— 不要退化为各删一子或仅本地清盘。
+- 求和为协商制（ASK/AGREE/REJECT，仿悔棋）；认输为单方宣告（RESIGN），两端从同一事件各自推导胜场计数。
+- 胜利判定为 4 个方向上连续五子；棋盘 15×15（`GameEngine` 默认）。
 
-## Commit style
+## 提交风格
 
-Messages are short; recent ones use Conventional-Commits prefixes with Chinese subjects (e.g. `chore(build): 升级Gradle和依赖配置`).
+提交信息从简；近期采用 Conventional Commits 前缀 + 中文主题（如 `chore(build): 升级Gradle和依赖配置`）。

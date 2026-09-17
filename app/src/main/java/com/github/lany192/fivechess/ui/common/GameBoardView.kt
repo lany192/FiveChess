@@ -3,11 +3,8 @@ package com.github.lany192.fivechess.ui.common
 import android.content.Context
 import android.graphics.Bitmap
 import android.graphics.Canvas
-import android.graphics.Color
 import android.graphics.Paint
 import android.graphics.PixelFormat
-import android.graphics.PorterDuff
-import android.graphics.PorterDuffXfermode
 import android.graphics.drawable.Drawable
 import android.os.Looper
 import android.util.AttributeSet
@@ -16,8 +13,8 @@ import android.view.SurfaceHolder
 import android.view.SurfaceView
 import android.view.View
 import androidx.core.content.ContextCompat
+import androidx.core.graphics.createBitmap
 import com.github.lany192.fivechess.R
-import com.github.lany192.fivechess.domain.model.Point
 import com.github.lany192.fivechess.domain.model.Side
 
 /**
@@ -37,14 +34,10 @@ class GameBoardView @JvmOverloads constructor(
 
     private val chessPaint = Paint(Paint.ANTI_ALIAS_FLAG)
     private val boardPaint = Paint(Paint.ANTI_ALIAS_FLAG)
-    private val clearPaint = Paint().apply {
-        xfermode = PorterDuffXfermode(PorterDuff.Mode.CLEAR)
-    }
     private val winPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
         style = Paint.Style.STROKE
-        strokeWidth = WIN_LINE_WIDTH
-        color = WIN_LINE_COLOR
     }
+    private val boardBgColor = ContextCompat.getColor(context, R.color.board_surface)
 
     private var boardWidth = DEFAULT_BOARD_SIZE
     private var boardHeight = DEFAULT_BOARD_SIZE
@@ -66,7 +59,9 @@ class GameBoardView @JvmOverloads constructor(
         holder.setFormat(PixelFormat.TRANSLUCENT)
         setZOrderOnTop(true)
         boardPaint.strokeWidth = resources.getDimensionPixelSize(R.dimen.boardWidth).toFloat()
-        boardPaint.color = Color.BLACK
+        boardPaint.color = ContextCompat.getColor(context, R.color.board_line)
+        winPaint.strokeWidth = resources.getDimension(R.dimen.win_line_width)
+        winPaint.color = ContextCompat.getColor(context, R.color.win_mark)
         isFocusable = true
     }
 
@@ -144,7 +139,7 @@ class GameBoardView @JvmOverloads constructor(
             null
         } ?: return
         try {
-            canvas.drawPaint(clearPaint)
+            canvas.drawColor(boardBgColor)
             drawBoard(canvas)
             val state = renderState
             if (state != null && cellSize > 0) {
@@ -219,7 +214,13 @@ class GameBoardView @JvmOverloads constructor(
 
     private fun drawWinLine(canvas: Canvas, state: BoardRenderState) {
         if (state.winLine.isEmpty()) return
-        val radius = cellSize / 2f - WIN_LINE_WIDTH
+        val radius = cellSize / 2f - winPaint.strokeWidth
+        val first = state.winLine.first()
+        val last = state.winLine.last()
+        canvas.drawLine(
+            first.x * cellSize + cellSize / 2f, first.y * cellSize + cellSize / 2f,
+            last.x * cellSize + cellSize / 2f, last.y * cellSize + cellSize / 2f, winPaint,
+        )
         state.winLine.forEach { point ->
             val cx = point.x * cellSize + cellSize / 2f
             val cy = point.y * cellSize + cellSize / 2f
@@ -255,15 +256,14 @@ class GameBoardView @JvmOverloads constructor(
         focusBitmap?.recycle()
         val tileSize = maxOf(1, viewWidth / boardWidth)
         blackBitmap = createChessBitmap(tileSize, R.drawable.black_chess)
-        // 白子沿用 red_chess 资源的对比色设计
-        whiteBitmap = createChessBitmap(tileSize, R.drawable.red_chess)
-        blackLastBitmap = createChessBitmap(tileSize, R.mipmap.black_new)
-        whiteLastBitmap = createChessBitmap(tileSize, R.mipmap.white_new)
-        focusBitmap = createChessBitmap(tileSize, R.mipmap.focus)
+        whiteBitmap = createChessBitmap(tileSize, R.drawable.white_chess)
+        blackLastBitmap = createChessBitmap(tileSize, R.drawable.black_chess_new)
+        whiteLastBitmap = createChessBitmap(tileSize, R.drawable.white_chess_new)
+        focusBitmap = createChessBitmap(tileSize, R.drawable.focus_ring)
     }
 
     private fun createChessBitmap(tileSize: Int, drawableRes: Int): Bitmap {
-        val bitmap = Bitmap.createBitmap(tileSize, tileSize, Bitmap.Config.ARGB_8888)
+        val bitmap = createBitmap(tileSize, tileSize)
         val canvas = Canvas(bitmap)
         val drawable: Drawable = ContextCompat.getDrawable(context, drawableRes)
             ?: throw IllegalArgumentException("drawable not found: $drawableRes")
@@ -275,7 +275,5 @@ class GameBoardView @JvmOverloads constructor(
     private companion object {
         const val DEFAULT_BOARD_SIZE = 15
         const val TAP_TOLERANCE = 3
-        const val WIN_LINE_WIDTH = 6f
-        val WIN_LINE_COLOR = 0x80FF4444.toInt()
     }
 }

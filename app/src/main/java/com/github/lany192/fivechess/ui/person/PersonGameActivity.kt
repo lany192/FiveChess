@@ -3,7 +3,6 @@ package com.github.lany192.fivechess.ui.person
 import android.os.Bundle
 import android.view.View
 import androidx.activity.viewModels
-import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.lifecycleScope
@@ -11,6 +10,8 @@ import androidx.lifecycle.repeatOnLifecycle
 import com.github.lany192.fivechess.R
 import com.github.lany192.fivechess.databinding.GameFightBinding
 import com.github.lany192.fivechess.domain.model.Side
+import com.github.lany192.fivechess.ui.common.setupEdgeToEdge
+import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import kotlinx.coroutines.launch
 
 class PersonGameActivity : AppCompatActivity() {
@@ -21,6 +22,8 @@ class PersonGameActivity : AppCompatActivity() {
         super.onCreate(savedInstanceState)
         binding = GameFightBinding.inflate(layoutInflater)
         setContentView(binding.root)
+        setupEdgeToEdge(binding.root)
+        binding.toolbar.setNavigationOnClickListener { finish() }
         binding.gameView.configure(BOARD_SIZE, BOARD_SIZE)
         binding.gameView.onCellTapped = { x, y ->
             viewModel.dispatch(PersonGameIntent.BoardTap(x, y))
@@ -63,9 +66,10 @@ class PersonGameActivity : AppCompatActivity() {
     }
 
     private fun showGameOverDialog(winner: Side) {
-        val message = if (winner == Side.BLACK) "黑方胜！" else "白方胜！"
-        AlertDialog.Builder(this)
+        val message = if (winner == Side.BLACK) R.string.msg_black_win else R.string.msg_white_win
+        MaterialAlertDialogBuilder(this)
             .setCancelable(false)
+            .setTitle(R.string.dialog_title_game_over)
             .setMessage(message)
             .setPositiveButton(R.string.Continue) { _, _ ->
                 viewModel.dispatch(PersonGameIntent.RestartClicked)

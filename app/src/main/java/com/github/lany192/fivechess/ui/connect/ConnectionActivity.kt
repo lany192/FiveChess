@@ -17,7 +17,9 @@ import com.github.lany192.fivechess.R
 import com.github.lany192.fivechess.data.net.ChatContent
 import com.github.lany192.fivechess.databinding.ActivityConnectBinding
 import com.github.lany192.fivechess.databinding.ChatDialogBinding
+import com.github.lany192.fivechess.ui.common.setupEdgeToEdge
 import com.github.lany192.fivechess.ui.wifi.WifiGameActivity
+import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import kotlinx.coroutines.launch
 
 class ConnectionActivity : AppCompatActivity() {
@@ -41,12 +43,14 @@ class ConnectionActivity : AppCompatActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         if (localIpAddress().isEmpty()) {
-            Toast.makeText(this, "请检查wifi连接后重试", Toast.LENGTH_LONG).show()
+            Toast.makeText(this, R.string.msg_wifi_check, Toast.LENGTH_LONG).show()
             finish()
             return
         }
         binding = ActivityConnectBinding.inflate(layoutInflater)
         setContentView(binding.root)
+        setupEdgeToEdge(binding.root)
+        binding.toolbar.setNavigationOnClickListener { finish() }
         binding.scan.setOnClickListener {
             viewModel.dispatch(ConnectIntent.ScanClicked)
         }
@@ -82,7 +86,7 @@ class ConnectionActivity : AppCompatActivity() {
     }
 
     private fun showHandshakeDialog(name: String, ip: String) {
-        val dialog = handshakeDialog ?: AlertDialog.Builder(this)
+        val dialog = handshakeDialog ?: MaterialAlertDialogBuilder(this)
             .setCancelable(false)
             .create()
             .also { handshakeDialog = it }
@@ -97,11 +101,11 @@ class ConnectionActivity : AppCompatActivity() {
     }
 
     private fun showConnectingDialog(ip: String) {
-        val dialog = waitDialog ?: AlertDialog.Builder(this)
+        val dialog = waitDialog ?: MaterialAlertDialogBuilder(this)
             .setCancelable(true)
             .create()
             .also { waitDialog = it }
-        dialog.setMessage("等待" + ip + "回应.请稍后....")
+        dialog.setMessage(getString(R.string.msg_wait_peer, ip))
         if (!dialog.isShowing) dialog.show()
     }
 
@@ -111,8 +115,8 @@ class ConnectionActivity : AppCompatActivity() {
             val dialogBinding = ChatDialogBinding.inflate(layoutInflater)
             dialogBinding.listChat.layoutManager = LinearLayoutManager(this)
             dialogBinding.listChat.adapter = chatAdapter
-            chatDialog = AlertDialog.Builder(this)
-                .setTitle("对话")
+            chatDialog = MaterialAlertDialogBuilder(this)
+                .setTitle(R.string.dialog_chat_title)
                 .setView(dialogBinding.root)
                 .create()
         }

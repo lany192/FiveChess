@@ -1,18 +1,17 @@
 <resources>
     <string name="app_name">五子棋</string>
-    <string name="action_settings">设置</string>
-    <string name="hello_world">Hello world!</string>
+    <string name="app_subtitle">原木棋盘 · 墨绿对弈</string>
+    <string name="mode_desc_robot">简单 / 中等 / 困难三种难度</string>
+    <string name="mode_desc_person">同屏轮流落子</string>
+    <string name="mode_desc_lan">连接同一 WiFi 的玩家</string>
     <string name="scan">局域网联机扫描</string>
     <string name="new_game">人机对战</string>
     <string name="fight">两人对战</string>
     <string name="fight_connection">联网对战</string>
-    <string name="Role_black">黑方</string>
-    <string name="Role_white">白方</string>
     <string name="agree">同意</string>
     <string name="reject">拒绝</string>
     <string name="fight_request">请求和你对战</string>
     <string name="connections">联机</string>
-    <string name="chat_send">发送</string>
     <string name="black">黑方</string>
     <string name="white">白方</string>
     <string name="restart">新开</string>
@@ -24,14 +23,29 @@
     <string name="myself">自己</string>
     <string name="challenger">对手</string>
     <string name="computer">电脑</string>
-    <string name="setting">设置</string>
     <string name="ok">确定</string>
+    <string name="cancel">取消</string>
     <string name="Continue">继续</string>
-    <string name="scan_hint">搜索链接相同wifi的玩家（要链接同一个Wifi才能搜索到）</string>
+    <string name="scan_hint">搜索连接同一 WiFi 的玩家</string>
     <string name="game_player">玩家</string>
-    <string name="scan_loading">扫描中，请稍后......</string>
     <string name="difficulty">难度</string>
     <string name="ai_level_easy">简单</string>
     <string name="ai_level_medium">中等</string>
     <string name="ai_level_hard">困难</string>
+    <!-- 对话框与提示文案 -->
+    <string name="about_message">欢迎访问源代码\nhttps://github.com/lany192/FiveChess</string>
+    <string name="dialog_title_game_over">对局结束</string>
+    <string name="dialog_chat_title">对话</string>
+    <string name="msg_black_win">黑方胜！</string>
+    <string name="msg_white_win">白方胜！</string>
+    <string name="msg_connecting">建立连接中，请稍后</string>
+    <string name="msg_i_won">恭喜你！你赢了！</string>
+    <string name="msg_i_lost">很遗憾！你输了！</string>
+    <string name="msg_rollback_ask">是否同意对方悔棋</string>
+    <string name="msg_wait_peer">等待 %1$s 回应，请稍后…</string>
+    <string name="msg_connect_failed">建立网络失败，请重试</string>
+    <string name="msg_wifi_check">请检查 WiFi 连接后重试</string>
+    <string name="msg_draw_ask">对方请求和棋，是否同意？</string>
+    <string name="msg_draw_end">双方和棋</string>
+    <string name="msg_resign_confirm">确定要认输吗？本方判负</string>
 </resources>

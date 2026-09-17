@@ -79,6 +79,23 @@ class LanGameClient(private val isServer: Boolean, private val remoteIp: String)
         send(Protocol.encodeTcp(TcpType.RESTART))
     }
 
+    fun askDraw() {
+        send(Protocol.encodeTcp(TcpType.DRAW_ASK))
+    }
+
+    fun agreeDraw() {
+        send(Protocol.encodeTcp(TcpType.DRAW_AGREE))
+    }
+
+    fun rejectDraw() {
+        send(Protocol.encodeTcp(TcpType.DRAW_REJECT))
+    }
+
+    /** 单方宣告认输，无需对方确认 */
+    fun sendResign() {
+        send(Protocol.encodeTcp(TcpType.RESIGN))
+    }
+
     private suspend fun connectLoop() {
         var connected: Socket? = null
         try {
@@ -143,6 +160,10 @@ class LanGameClient(private val isServer: Boolean, private val remoteIp: String)
                         TcpType.ROLLBACK_AGREE -> _events.tryEmit(NetEvent.RollbackAgreed)
                         TcpType.ROLLBACK_REJECT -> _events.tryEmit(NetEvent.RollbackRejected)
                         TcpType.RESTART -> _events.tryEmit(NetEvent.RestartRequested)
+                        TcpType.DRAW_ASK -> _events.tryEmit(NetEvent.DrawAsked)
+                        TcpType.DRAW_AGREE -> _events.tryEmit(NetEvent.DrawAgreed)
+                        TcpType.DRAW_REJECT -> _events.tryEmit(NetEvent.DrawRejected)
+                        TcpType.RESIGN -> _events.tryEmit(NetEvent.Resigned)
                         else -> Unit
                     }
                 }
