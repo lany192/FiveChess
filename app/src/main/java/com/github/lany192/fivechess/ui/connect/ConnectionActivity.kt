@@ -69,6 +69,7 @@ class ConnectionActivity : AppCompatActivity() {
                     viewModel.effects.collect { effect ->
                         when (effect) {
                             is ConnectEffect.ShowHandshakeRequest -> showHandshakeDialog(effect.name, effect.ip)
+                            ConnectEffect.DismissHandshake -> handshakeDialog?.dismiss()
                             is ConnectEffect.ShowConnecting -> showConnectingDialog(effect.ip)
                             ConnectEffect.DismissConnecting -> waitDialog?.dismiss()
                             is ConnectEffect.NavigateToGame -> WifiGameActivity.start(
@@ -104,7 +105,10 @@ class ConnectionActivity : AppCompatActivity() {
         val dialog = waitDialog ?: MaterialAlertDialogBuilder(this)
             .setCancelable(true)
             .create()
-            .also { waitDialog = it }
+            .also {
+                it.setOnCancelListener { viewModel.dispatch(ConnectIntent.ConnectCancelled) }
+                waitDialog = it
+            }
         dialog.setMessage(getString(R.string.msg_wait_peer, ip))
         if (!dialog.isShowing) dialog.show()
     }

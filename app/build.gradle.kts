@@ -5,7 +5,7 @@ plugins {
 android {
     namespace = "com.github.lany192.fivechess"
     compileSdk {
-        version = release(36)
+        version = release(37)
     }
 
     defaultConfig {

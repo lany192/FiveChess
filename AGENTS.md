@@ -31,6 +31,7 @@ Android 五子棋应用，单 `app` 模块，100% Kotlin。手写 MVI（无 MVI 
 - UDP 单播端口 2599：`[type][nameLen][name][ipLen][ip]`，ASK=11 / AGREE=12 / REJECT=13 / UDP_JOIN=0；CHAT=14 追加 `[chatLen][chat]`。
 - TCP 端口 8899 对局：`[len][type][payload]`，len 为含自身的整帧总长；ADD_CHESS=0（payload `[x][y]`）、ROLLBACK_ASK=2 / ROLLBACK_AGREE=3 / ROLLBACK_REJECT=4、RESTART=5、DRAW_ASK=6 / DRAW_AGREE=7 / DRAW_REJECT=8、RESIGN=9。
 - 编码与解码同在 `Protocol.kt`，由 `ProtocolTest` 字节冻结用例守护 —— 两侧必须同步修改，并在同一局域网的真机双端验证。
+- 接收侧对端 IP 以 UDP 包的传输层源地址为准，包体中的自报 IP 仅作兜底（`WifiManager.connectionInfo.ipAddress` 是废弃 API，可能返回陈旧/错误地址，自报不可信）。
 
 ## 行为要点
 

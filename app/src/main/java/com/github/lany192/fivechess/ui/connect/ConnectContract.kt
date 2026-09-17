@@ -6,6 +6,7 @@ import com.github.lany192.fivechess.data.net.ConnectionItem
 sealed interface ConnectIntent {
     data object ScanClicked : ConnectIntent
     data class PeerClicked(val ip: String) : ConnectIntent
+    data object ConnectCancelled : ConnectIntent
     data class HandshakeAgreed(val ip: String) : ConnectIntent
     data class HandshakeRejected(val ip: String) : ConnectIntent
 }
@@ -16,6 +17,7 @@ data class ConnectState(
 
 sealed interface ConnectEffect {
     data class ShowHandshakeRequest(val name: String, val ip: String) : ConnectEffect
+    data object DismissHandshake : ConnectEffect
     data class ShowConnecting(val ip: String) : ConnectEffect
     data object DismissConnecting : ConnectEffect
     data class NavigateToGame(val isServer: Boolean, val ip: String) : ConnectEffect

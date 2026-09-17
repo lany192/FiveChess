@@ -7,6 +7,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.channels.BufferOverflow
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.flow.asSharedFlow
@@ -122,39 +123,45 @@ class LanDiscoveryManager(private val localIp: String) {
         val packet = DatagramPacket(buf, buf.size)
         while (running) {
             try {
+                // length 是入参（容量）兼出参（实际大小），复用前必须重置，否则后续包被截断
+                packet.setLength(buf.size)
                 socket.receive(packet)
             } catch (e: SocketException) {
                 break // stop() 关闭 socket 打断阻塞
             } catch (e: IOException) {
+                // 瞬时错误不能让接收循环永久退出，否则发现/握手静默失效
                 Log.d(TAG, "udp receive error: ${e.message}")
-                _events.tryEmit(DiscoveryEvent.Error(DiscoveryError.UDP_DATA_ERROR))
-                break
+                delay(RECEIVE_ERROR_DELAY_MS)
+                continue
             }
             val data = packet.data.copyOf(packet.length)
             if (data.isEmpty()) continue
             val type = data[0]
             val body = data.copyOfRange(1, data.size)
+            // 包体 IP 是对端自报的（废弃 API，可能陈旧/错误），同网段以传输层源地址为准
+            val srcIp = packet.address?.hostAddress
             try {
                 when (type) {
                     UdpType.UDP_JOIN.b -> {
                         val item = Protocol.decodeTypedBody(body)
-                        _events.tryEmit(DiscoveryEvent.PeerJoined(item.name, item.ip))
+                        _events.tryEmit(DiscoveryEvent.PeerJoined(item.name, srcIp ?: item.ip))
                     }
                     UdpType.ASK.b -> {
                         val item = Protocol.decodeTypedBody(body)
-                        _events.tryEmit(DiscoveryEvent.HandshakeRequested(item.name, item.ip))
+                        _events.tryEmit(DiscoveryEvent.HandshakeRequested(item.name, srcIp ?: item.ip))
                     }
                     UdpType.AGREE.b -> {
                         val item = Protocol.decodeTypedBody(body)
-                        _events.tryEmit(DiscoveryEvent.HandshakeAccepted(item.name, item.ip))
+                        _events.tryEmit(DiscoveryEvent.HandshakeAccepted(item.name, srcIp ?: item.ip))
                     }
                     UdpType.REJECT.b -> {
                         val item = Protocol.decodeTypedBody(body)
-                        _events.tryEmit(DiscoveryEvent.HandshakeRejected(item.name, item.ip))
+                        _events.tryEmit(DiscoveryEvent.HandshakeRejected(item.name, srcIp ?: item.ip))
                     }
                     UdpType.CHAT.b -> {
                         val payload = Protocol.decodeChatBody(body)
-                        _events.tryEmit(DiscoveryEvent.ChatReceived(payload.from, payload.content))
+                        val from = payload.from.copy(ip = srcIp ?: payload.from.ip)
+                        _events.tryEmit(DiscoveryEvent.ChatReceived(from, payload.content))
                     }
                 }
             } catch (e: ProtocolException) {
@@ -169,23 +176,26 @@ class LanDiscoveryManager(private val localIp: String) {
         val packet = DatagramPacket(buf, buf.size)
         while (running) {
             try {
+                packet.setLength(buf.size)
                 socket.receive(packet)
             } catch (e: SocketException) {
                 break
             } catch (e: IOException) {
                 Log.d(TAG, "multicast receive error: ${e.message}")
-                _events.tryEmit(DiscoveryEvent.Error(DiscoveryError.MULTICAST_ERROR))
-                break
+                delay(RECEIVE_ERROR_DELAY_MS)
+                continue
             }
             val data = packet.data.copyOf(packet.length)
-            val broadcast = try {
+            val (bodyItem, type) = try {
                 Protocol.decodeBroadcast(data)
             } catch (e: ProtocolException) {
                 Log.d(TAG, "drop malformed broadcast: ${e.message}")
                 continue
             }
-            val (item, type) = broadcast
-            if (item.ip == localIp) continue // 自己发的广播
+            // 包体 IP 是对端自报的（可能陈旧/错误），同网段以传输层源地址为准
+            val srcIp = packet.address?.hostAddress
+            if (srcIp == localIp || bodyItem.ip == localIp) continue // 自己发的广播
+            val item = if (srcIp != null) bodyItem.copy(ip = srcIp) else bodyItem
             when (type) {
                 BroadcastType.JOIN -> _events.tryEmit(DiscoveryEvent.PeerJoined(item.name, item.ip))
                 BroadcastType.EXIT -> _events.tryEmit(DiscoveryEvent.PeerExited(item.name, item.ip))
@@ -255,5 +265,6 @@ class LanDiscoveryManager(private val localIp: String) {
     private companion object {
         const val TAG = "LanDiscovery"
         const val BUFFER_SIZE = 1024
+        const val RECEIVE_ERROR_DELAY_MS = 200L
     }
 }

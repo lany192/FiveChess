@@ -102,6 +102,8 @@ class LanGameClient(private val isServer: Boolean, private val remoteIp: String)
             connected = if (isServer) {
                 val server = ServerSocket(Protocol.TCP_PORT)
                 serverSocket = server
+                // 对方同意后迟迟不来连接（闪退/杀进程）时不能永久阻塞
+                server.soTimeout = ACCEPT_TIMEOUT_MS
                 Log.d(TAG, "server waiting accept")
                 server.accept()
             } else {
@@ -214,7 +216,8 @@ class LanGameClient(private val isServer: Boolean, private val remoteIp: String)
     private companion object {
         const val TAG = "LanGameClient"
         const val BUFFER_SIZE = 2048
-        const val RETRY_TIMES = 8
-        const val RETRY_INTERVAL_MS = 200L
+        const val RETRY_TIMES = 10
+        const val RETRY_INTERVAL_MS = 250L
+        const val ACCEPT_TIMEOUT_MS = 30_000
     }
 }
