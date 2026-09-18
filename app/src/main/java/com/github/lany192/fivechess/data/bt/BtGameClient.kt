@@ -104,6 +104,10 @@ class BtGameClient(
         send(Protocol.encodeTcp(TcpType.RESIGN))
     }
 
+    override fun sendTimeout() {
+        send(Protocol.encodeTcp(TcpType.TIMEOUT))
+    }
+
     // ---------- 建连 ----------
 
     private suspend fun connectLoop() {
@@ -216,6 +220,7 @@ class BtGameClient(
                         TcpType.DRAW_AGREE -> _events.tryEmit(NetEvent.DrawAgreed)
                         TcpType.DRAW_REJECT -> _events.tryEmit(NetEvent.DrawRejected)
                         TcpType.RESIGN -> _events.tryEmit(NetEvent.Resigned)
+                        TcpType.TIMEOUT -> _events.tryEmit(NetEvent.TimedOut)
                         else -> Unit
                     }
                 }

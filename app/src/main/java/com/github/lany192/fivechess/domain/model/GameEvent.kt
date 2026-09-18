@@ -8,6 +8,9 @@ sealed interface GameEvent {
 
     data class GameOver(val winner: Side, val line: List<Point>) : GameEvent
 
+    /** 超时判负：无五连，故 [GameOver] 的 line 语义不适用，单列一类事件 */
+    data class Timeout(val loser: Side, val winner: Side) : GameEvent
+
     data class IllegalMove(val x: Int, val y: Int, val reason: Reason) : GameEvent {
         enum class Reason { OUT_OF_BOUNDS, OCCUPIED, NOT_YOUR_TURN, GAME_OVER }
     }

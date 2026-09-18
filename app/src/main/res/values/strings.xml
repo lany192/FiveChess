@@ -59,4 +59,10 @@
     <string name="msg_draw_ask">对方请求和棋，是否同意？</string>
     <string name="msg_draw_end">双方和棋</string>
     <string name="msg_resign_confirm">确定要认输吗？本方判负</string>
+    <!-- 每步 3 分钟倒计时 -->
+    <string name="msg_black_timeout">黑方超时判负，白方胜！</string>
+    <string name="msg_white_timeout">白方超时判负，黑方胜！</string>
+    <string name="msg_peer_timeout">对方超时判负，你赢了！</string>
+    <string name="msg_self_timeout">你超时判负，很遗憾！</string>
+    <string name="countdown_idle">--:--</string>
 </resources>

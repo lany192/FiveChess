@@ -211,6 +211,12 @@ class ProtocolTest {
     // ---------- 求和/认输（新增消息类型） ----------
 
     @Test
+    fun `超时判负字节值冻结`() {
+        assertEquals(10.toByte(), TcpType.TIMEOUT.b)
+        assertArrayEquals(byteArrayOf(2, 10), Protocol.encodeTcp(TcpType.TIMEOUT))
+    }
+
+    @Test
     fun `求和认输字节值冻结`() {
         assertEquals(6.toByte(), TcpType.DRAW_ASK.b)
         assertEquals(7.toByte(), TcpType.DRAW_AGREE.b)

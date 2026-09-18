@@ -56,6 +56,21 @@ class GameEngine(val width: Int = 15, val height: Int = 15) {
         return place(x, y, side)
     }
 
+    /**
+     * 超时判负：[loser] 判负，胜方为 [loser].opposite
+     *
+     * 终局必须落到引擎的 [over] 上，否则 [placementCheck] 不拦，超时后棋盘仍可落子。
+     * 无五连，故不产生连珠线。active 归到胜方，与五连终局的观感一致。
+     */
+    fun declareTimeout(loser: Side): EngineResult {
+        if (over) return EngineResult(snapshot(), emptyList())
+        val champion = loser.opposite
+        winner = champion
+        over = true
+        active = champion
+        return EngineResult(snapshot(), listOf(GameEvent.Timeout(loser, champion)))
+    }
+
     /** 回退 steps 手 */
     fun rollback(steps: Int = 1): EngineResult {
         val removed = mutableListOf<Move>()

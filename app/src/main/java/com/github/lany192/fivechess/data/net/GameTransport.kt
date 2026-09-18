@@ -38,4 +38,7 @@ interface GameTransport {
 
     /** 单方宣告认输，无需对方确认 */
     fun sendResign()
+
+    /** 单方宣告本方每步限时归零判负，无需对方确认 */
+    fun sendTimeout()
 }

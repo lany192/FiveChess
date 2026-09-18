@@ -28,6 +28,14 @@ enum class TcpType(val b: Byte) {
     DRAW_AGREE(7),
     DRAW_REJECT(8),
     RESIGN(9),
+
+    /**
+     * 新增：每步限时归零时由超时方宣告判负（无 payload，语义同 [RESIGN] 的自陈认输）
+     *
+     * 只有"当时轮到自己走棋"的一端会发，对端据解读作自己获胜。旧版收到未知字节会忽略，
+     * 即本功能要求两端同版本。
+     */
+    TIMEOUT(10),
 }
 
 /**

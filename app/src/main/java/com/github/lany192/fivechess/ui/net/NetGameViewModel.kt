@@ -12,6 +12,7 @@ import com.github.lany192.fivechess.domain.model.Move
 import com.github.lany192.fivechess.domain.model.Point
 import com.github.lany192.fivechess.domain.model.Side
 import com.github.lany192.fivechess.ui.common.BoardRenderState
+import com.github.lany192.fivechess.ui.common.TurnCountdown
 import kotlinx.coroutines.launch
 
 /**
@@ -22,16 +23,25 @@ import kotlinx.coroutines.launch
  * - 悔棋为协商制：双方各自从落子历史中移除"请求方最后一手及其之后所有棋子"，
  *   两端移除数量由同一份历史推导，修复旧版两端各删一手导致的棋盘失同步
  * - 重开棋局通过 RESTART 消息同步两端，修复旧版仅本地清盘的失同步
+ * - 每步限时 3 分钟：两端各跑一份本地倒计时，**只有当时轮到自己走棋的一端**会在归零时
+ *   宣告判负（TIMEOUT 消息），对端据解读作自己获胜。因为落子被 `active != mySide` 挡住，
+ *   任一端的 active 只可能领先对端一个在途消息、不可能滞后，故任一时刻至多一个发送方，
+ *   两端不可能宣告出不同胜方；也因此不做"等待方兜底宣告"——那会让发送方变成在宣告自己赢，
+ *   接收端却读作对方认输，两端各加一胜场而永久分歧
+ *
+ * @param turnDurationMillis 每步时限；<= 0 表示不限时（JVM 测试用，见 [TurnCountdown] 的约定）
  */
 class NetGameViewModel(
     private val mode: GameMode,
     private val mySide: Side,
     private val transport: GameTransport,
     private val engine: GameEngine = GameEngine(),
+    private val turnDurationMillis: Long = TurnCountdown.THREE_MINUTES,
 ) : MviViewModel<NetGameIntent, NetGameState, NetGameEffect>(
     NetGameState(
         board = BoardRenderState.empty(),
         mySide = mySide,
+        remainingMillis = turnDurationMillis,
     )
 ) {
 
@@ -45,8 +55,16 @@ class NetGameViewModel(
     private var awaitingDrawResponse = false
     private var drawDialogShowing = false
 
-    /** 和棋/认输宣告的终局（引擎规则之外的 VM 层终局，落子与协商一律拦截） */
+    /** 和棋/认输/超时宣告的终局（引擎规则之外的 VM 层终局，落子与协商一律拦截） */
     private var declaredOver = false
+
+    // 必须在 init 之前声明：属性与 init 按声明顺序执行，init 会用到它
+    private val turn = TurnCountdown(
+        scope = viewModelScope,
+        durationMillis = turnDurationMillis,
+        onTick = { remaining -> updateState { it.copy(remainingMillis = remaining) } },
+        onExpired = ::onTurnExpired,
+    )
 
     init {
         engine.start(mode, mySide = mySide)
@@ -55,6 +73,8 @@ class NetGameViewModel(
             transport.events.collect(::onNetEvent)
         }
         transport.start()
+        // 不在 init 开表：握手最长可达几十秒（accept 30s / TCP 重试 10×250ms / 蓝牙 15s），
+        // 提前开表会让黑方第一手凭空少一大截，且两端开表时刻相差一整个握手时长
     }
 
     override fun onIntent(intent: NetGameIntent) {
@@ -74,6 +94,8 @@ class NetGameViewModel(
             }
             NetGameIntent.RollbackAgreed -> {
                 rollbackDialogShowing = false
+                // 对话框开着时对端可能已超时/认输终局，此时不能因"同意悔棋"把终局复活
+                if (declaredOver || engine.snapshot().over) return
                 transport.agreeRollback()
                 applyRollback(mySide.opposite)
             }
@@ -139,9 +161,12 @@ class NetGameViewModel(
             NetEvent.Connected -> {
                 connected = true
                 updateState { it.copy(connected = true) }
+                // 握手完成才开表，两端起点一致
+                turn.restart()
                 viewModelScope.launch { emitEffect(NetGameEffect.DismissConnecting) }
             }
             NetEvent.ConnectFailed -> {
+                turn.stop()
                 viewModelScope.launch {
                     emitEffect(NetGameEffect.DismissConnecting)
                     emitEffect(NetGameEffect.ShowMessage("建立连接失败,请重试"))
@@ -149,6 +174,7 @@ class NetGameViewModel(
                 }
             }
             NetEvent.Disconnected -> {
+                turn.stop()
                 viewModelScope.launch {
                     emitEffect(NetGameEffect.DismissConnecting)
                     emitEffect(NetGameEffect.ShowMessage("对方已断开连接"))
@@ -205,12 +231,19 @@ class NetGameViewModel(
                 if (declaredOver || engine.snapshot().over) return
                 declareWinner(mySide)
             }
+            NetEvent.TimedOut -> {
+                // 对端自陈超时判负，本方获胜；走引擎让棋盘立即锁定
+                if (declaredOver || engine.snapshot().over) return
+                consume(engine.declareTimeout(mySide.opposite))
+            }
         }
     }
 
     /** 和棋终局：双方胜场均不加，两端对称 */
     private fun declareDraw() {
         declaredOver = true
+        clearPendingNegotiation()
+        turn.stop()
         end = NetGameEnd.Draw
         updateState { it.copy(end = end) }
     }
@@ -218,6 +251,8 @@ class NetGameViewModel(
     /** 宣告终局并结算胜场：两端从同一事件各自推导 winner，胜场计数保持一致 */
     private fun declareWinner(winner: Side) {
         declaredOver = true
+        clearPendingNegotiation()
+        turn.stop()
         when (winner) {
             Side.BLACK -> blackWins++
             Side.WHITE -> whiteWins++
@@ -228,8 +263,28 @@ class NetGameViewModel(
 
     private fun resetRoundFlags() {
         declaredOver = false
+        clearPendingNegotiation()
+    }
+
+    /**
+     * 作废全部待决协商
+     *
+     * 终局（超时/认输/和棋/五连）降临时要清掉，否则"悔棋对话框正开着时一方判负"会因用户
+     * 一点同意就把已宣告的终局复活。绝不能改成回 REJECT —— 对端已本地回退，回绝反而造成失步。
+     */
+    private fun clearPendingNegotiation() {
+        awaitingRollbackResponse = false
+        rollbackDialogShowing = false
         awaitingDrawResponse = false
         drawDialogShowing = false
+    }
+
+    /** 归零：只有轮到本方走棋的一端宣告判负，详见类注释 */
+    private fun onTurnExpired() {
+        val snapshot = engine.snapshot()
+        if (!connected || declaredOver || snapshot.over || snapshot.active != mySide) return
+        consume(engine.declareTimeout(mySide))
+        transport.sendTimeout()
     }
 
     private fun consume(result: EngineResult) {
@@ -244,15 +299,32 @@ class NetGameViewModel(
                         Side.BLACK -> blackWins++
                         Side.WHITE -> whiteWins++
                     }
+                    clearPendingNegotiation()
+                    turn.stop()
+                }
+                is GameEvent.Timeout -> {
+                    winLine = emptyList()
+                    declaredOver = true
+                    end = NetGameEnd.Timeout(event.winner)
+                    when (event.winner) {
+                        Side.BLACK -> blackWins++
+                        Side.WHITE -> whiteWins++
+                    }
+                    clearPendingNegotiation()
+                    turn.stop()
                 }
                 is GameEvent.RollbackApplied -> {
                     winLine = emptyList()
                     end = null
+                    if (connected) turn.restart()
                 }
                 GameEvent.Restarted -> {
                     winLine = emptyList()
                     end = null
+                    if (connected) turn.restart()
                 }
+                // 非法落子（越界/占用/非本方回合）刻意不重置倒计时，否则可乱点续命
+                is GameEvent.MoveApplied -> if (connected) turn.restart()
                 else -> Unit
             }
         }

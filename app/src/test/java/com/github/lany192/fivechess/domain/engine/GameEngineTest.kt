@@ -203,4 +203,62 @@ class GameEngineTest {
         val illegal = result.events.filterIsInstance<GameEvent.IllegalMove>().first()
         assertEquals(GameEvent.IllegalMove.Reason.OUT_OF_BOUNDS, illegal.reason)
     }
+
+    @Test
+    fun `超时判负胜方为对方且不产生连珠线`() {
+        place(Triple(3, 7, Side.BLACK), Triple(4, 7, Side.WHITE))
+        // 轮到黑方，黑方超时
+        val result = engine.declareTimeout(Side.BLACK)
+
+        val timeout = result.events.filterIsInstance<GameEvent.Timeout>().first()
+        assertEquals(Side.BLACK, timeout.loser)
+        assertEquals(Side.WHITE, timeout.winner)
+        assertEquals(Side.WHITE, result.state.winner)
+        assertTrue(result.state.over)
+        assertTrue(result.events.none { it is GameEvent.GameOver })
+    }
+
+    @Test
+    fun `超时判负后棋盘锁定，落子一律被拒`() {
+        engine.declareTimeout(Side.BLACK)
+        val result = engine.applyRemoteMove(7, 7, Side.BLACK)
+
+        val illegal = result.events.filterIsInstance<GameEvent.IllegalMove>().first()
+        assertEquals(GameEvent.IllegalMove.Reason.GAME_OVER, illegal.reason)
+        assertNull(result.state.sideAt(7, 7))
+    }
+
+    @Test
+    fun `已终局时再次超时判负被忽略`() {
+        engine.declareTimeout(Side.BLACK)
+        val again = engine.declareTimeout(Side.WHITE)
+
+        assertTrue(again.events.isEmpty())
+        // 胜方仍是先宣告时的结果，不会被后到的宣告翻盘
+        assertEquals(Side.WHITE, again.state.winner)
+    }
+
+    @Test
+    fun `悔棋解除超时判负终局`() {
+        place(Triple(3, 7, Side.BLACK))
+        engine.declareTimeout(Side.WHITE)
+        assertTrue(engine.snapshot().over)
+
+        val result = engine.rollback()
+
+        assertFalse(result.state.over)
+        assertNull(result.state.winner)
+    }
+
+    @Test
+    fun `重开解除超时判负终局`() {
+        place(Triple(3, 7, Side.BLACK))
+        engine.declareTimeout(Side.WHITE)
+
+        val result = engine.restart()
+
+        assertFalse(result.state.over)
+        assertNull(result.state.winner)
+        assertEquals(Side.BLACK, result.state.active)
+    }
 }

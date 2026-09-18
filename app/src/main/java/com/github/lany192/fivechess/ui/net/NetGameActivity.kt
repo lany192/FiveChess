@@ -8,6 +8,7 @@ import android.widget.Toast
 import androidx.activity.viewModels
 import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
+import androidx.core.content.ContextCompat
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.repeatOnLifecycle
@@ -20,6 +21,7 @@ import com.github.lany192.fivechess.data.net.LanGameClient
 import com.github.lany192.fivechess.databinding.GameNetBinding
 import com.github.lany192.fivechess.domain.model.GameMode
 import com.github.lany192.fivechess.domain.model.Side
+import com.github.lany192.fivechess.ui.common.TurnCountdown
 import com.github.lany192.fivechess.ui.common.setupEdgeToEdge
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import kotlinx.coroutines.launch
@@ -32,6 +34,11 @@ import kotlinx.coroutines.launch
 class NetGameActivity : AppCompatActivity() {
     private lateinit var binding: GameNetBinding
     private var waitDialog: AlertDialog? = null
+    private var rollbackDialog: AlertDialog? = null
+    private var drawDialog: AlertDialog? = null
+
+    /** 记分卡下方的倒计时常态色，用于从警告色复位 */
+    private var countdownNormalColor = 0
     private val viewModel: NetGameViewModel by viewModels {
         viewModelFactory {
             initializer {
@@ -64,6 +71,7 @@ class NetGameActivity : AppCompatActivity() {
         binding = GameNetBinding.inflate(layoutInflater)
         setContentView(binding.root)
         setupEdgeToEdge(binding.root)
+        countdownNormalColor = binding.countdown.currentTextColor
         binding.toolbar.setNavigationOnClickListener { finish() }
         val isServer = extras.getBoolean(EXTRA_IS_SERVER)
         binding.blackName.setText(if (isServer) R.string.myself else R.string.challenger)
@@ -121,6 +129,7 @@ class NetGameActivity : AppCompatActivity() {
         }
         binding.blackWin.text = state.blackWins.toString()
         binding.whiteWin.text = state.whiteWins.toString()
+        renderCountdown(state.connected, state.remainingMillis)
         when (val end = state.end) {
             null -> binding.resultBanner.visibility = View.GONE
             NetGameEnd.Draw -> {
@@ -133,7 +142,28 @@ class NetGameActivity : AppCompatActivity() {
                     if (end.winner == state.mySide) R.string.msg_i_won else R.string.msg_i_lost
                 )
             }
+            is NetGameEnd.Timeout -> {
+                binding.resultBanner.visibility = View.VISIBLE
+                binding.resultText.setText(
+                    if (end.winner == state.mySide) R.string.msg_peer_timeout else R.string.msg_self_timeout
+                )
+            }
         }
+        // 终局期间作废待决协商：对话框可能正开着（超时/认输与协商撞在一起），幂等关闭
+        if (state.end != null) {
+            rollbackDialog?.dismiss()
+            drawDialog?.dismiss()
+        }
+    }
+
+    private fun renderCountdown(connected: Boolean, remainingMillis: Long) {
+        binding.countdown.text =
+            if (connected) TurnCountdown.format(remainingMillis) else getString(R.string.countdown_idle)
+        val warning = connected && remainingMillis in 1 until WARN_MILLIS
+        // 主题的 colorError 就是 @color/error（values 与 values-night 各有一份）
+        binding.countdown.setTextColor(
+            if (warning) ContextCompat.getColor(this, R.color.error) else countdownNormalColor
+        )
     }
 
     private fun showWaitDialog() {
@@ -147,7 +177,7 @@ class NetGameActivity : AppCompatActivity() {
     }
 
     private fun showRollbackDialog() {
-        MaterialAlertDialogBuilder(this)
+        rollbackDialog = MaterialAlertDialogBuilder(this)
             .setMessage(R.string.msg_rollback_ask)
             .setCancelable(false)
             .setPositiveButton(R.string.agree) { _, _ ->
@@ -160,7 +190,7 @@ class NetGameActivity : AppCompatActivity() {
     }
 
     private fun showDrawRequestDialog() {
-        MaterialAlertDialogBuilder(this)
+        drawDialog = MaterialAlertDialogBuilder(this)
             .setMessage(R.string.msg_draw_ask)
             .setCancelable(false)
             .setPositiveButton(R.string.agree) { _, _ ->
@@ -204,5 +234,6 @@ class NetGameActivity : AppCompatActivity() {
         private const val EXTRA_PEER = "peer"
         private const val EXTRA_BLUETOOTH = "bluetooth"
         private const val BOARD_SIZE = 15
+        private const val WARN_MILLIS = 30_000L
     }
 }

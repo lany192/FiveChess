@@ -30,4 +30,7 @@ sealed interface NetEvent {
     data object DrawRejected : NetEvent
 
     data object Resigned : NetEvent
+
+    /** 对端每步限时归零，自陈判负 */
+    data object TimedOut : NetEvent
 }

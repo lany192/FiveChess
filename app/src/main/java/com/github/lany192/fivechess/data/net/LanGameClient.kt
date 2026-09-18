@@ -96,6 +96,11 @@ class LanGameClient(private val isServer: Boolean, private val remoteIp: String)
         send(Protocol.encodeTcp(TcpType.RESIGN))
     }
 
+    /** 单方宣告本方限时归零判负（新增消息类型） */
+    override fun sendTimeout() {
+        send(Protocol.encodeTcp(TcpType.TIMEOUT))
+    }
+
     private suspend fun connectLoop() {
         var connected: Socket? = null
         try {
@@ -166,6 +171,7 @@ class LanGameClient(private val isServer: Boolean, private val remoteIp: String)
                         TcpType.DRAW_AGREE -> _events.tryEmit(NetEvent.DrawAgreed)
                         TcpType.DRAW_REJECT -> _events.tryEmit(NetEvent.DrawRejected)
                         TcpType.RESIGN -> _events.tryEmit(NetEvent.Resigned)
+                        TcpType.TIMEOUT -> _events.tryEmit(NetEvent.TimedOut)
                         else -> Unit
                     }
                 }

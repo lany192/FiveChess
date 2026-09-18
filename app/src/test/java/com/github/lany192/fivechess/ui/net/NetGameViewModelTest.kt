@@ -5,6 +5,7 @@ import com.github.lany192.fivechess.data.net.NetEvent
 import com.github.lany192.fivechess.data.net.TcpType
 import com.github.lany192.fivechess.domain.model.GameMode
 import com.github.lany192.fivechess.domain.model.Side
+import com.github.lany192.fivechess.ui.common.TurnCountdown
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.MutableSharedFlow
@@ -12,8 +13,10 @@ import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.test.StandardTestDispatcher
 import kotlinx.coroutines.test.TestScope
+import kotlinx.coroutines.test.advanceTimeBy
 import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.resetMain
+import kotlinx.coroutines.test.runCurrent
 import kotlinx.coroutines.test.runTest
 import kotlinx.coroutines.test.setMain
 import org.junit.After
@@ -187,20 +190,108 @@ class NetGameViewModelTest {
         assertEquals(5, vm.state.value.board.winLine.size)
     }
 
+    @Test(timeout = 10_000)
+    fun `本方回合超时判负并同步给对端`() = runTest(dispatcher) {
+        val transport = FakeTransport()
+        // 本方执黑先手，5 秒时限：startVm 末尾的 advanceUntilIdle 会把表推到归零
+        val vm = startVm(transport, Side.BLACK, turnMillis = 5_000)
+
+        assertEquals(TcpType.TIMEOUT, transport.lastSent)
+        assertEquals(NetGameEnd.Timeout(Side.WHITE), vm.state.value.end)
+        assertEquals(1, vm.state.value.whiteWins)
+        assertEquals(0, vm.state.value.blackWins)
+    }
+
+    @Test(timeout = 10_000)
+    fun `对端超时则本方获胜且不回发`() = runTest(dispatcher) {
+        val transport = FakeTransport()
+        val vm = startVm(transport, Side.BLACK)
+        transport.emit(NetEvent.TimedOut)
+        advanceUntilIdle()
+
+        assertEquals(NetGameEnd.Timeout(Side.BLACK), vm.state.value.end)
+        assertEquals(1, vm.state.value.blackWins)
+        assertTrue(transport.sent.none { it == TcpType.TIMEOUT })
+    }
+
+    @Test(timeout = 10_000)
+    fun `不是本方回合时归零保持沉默`() = runTest(dispatcher) {
+        val transport = FakeTransport()
+        // 本方执白，黑方先行：白方一侧归零不得宣告，须等对端自己宣告
+        val vm = startVm(transport, Side.WHITE, turnMillis = 3_000)
+
+        // 先确认表确实跑到了归零，否则"保持沉默"可能是压根没起表而白白通过
+        assertEquals(0L, vm.state.value.remainingMillis)
+        assertTrue(transport.sent.isEmpty())
+        assertNull(vm.state.value.end)
+    }
+
+    @Test(timeout = 10_000)
+    fun `非法落子不重置倒计时`() = runTest(dispatcher) {
+        val transport = FakeTransport()
+        val vm = NetGameViewModel(
+            mode = GameMode.BLUETOOTH,
+            mySide = Side.BLACK,
+            transport = transport,
+            turnDurationMillis = 10_000,
+        )
+        advanceUntilIdle()
+        transport.emit(NetEvent.Connected)
+        runCurrent()
+
+        advanceTimeBy(5_000)
+        runCurrent()
+        // 越界落子被引擎拒绝：若它重置了表，归零会推迟到 15 秒，下面的断言就会失败
+        vm.dispatch(NetGameIntent.BoardTap(20, 20))
+        runCurrent()
+
+        advanceTimeBy(6_000)
+        runCurrent()
+
+        assertEquals(TcpType.TIMEOUT, transport.lastSent)
+    }
+
+    @Test(timeout = 10_000)
+    fun `超时终局期间到达的悔棋同意不会复活棋局`() = runTest(dispatcher) {
+        val transport = FakeTransport()
+        val vm = startVm(transport, Side.BLACK)
+        vm.dispatch(NetGameIntent.BoardTap(0, 0))
+        advanceUntilIdle()
+
+        // 对端请求悔棋，对话框开着；此时本方收到对方超时宣告
+        transport.emit(NetEvent.RollbackAsked)
+        advanceUntilIdle()
+        transport.emit(NetEvent.TimedOut)
+        advanceUntilIdle()
+
+        vm.dispatch(NetGameIntent.RollbackAgreed)
+        advanceUntilIdle()
+
+        assertEquals(NetGameEnd.Timeout(Side.BLACK), vm.state.value.end)
+        assertTrue(transport.sent.none { it == TcpType.ROLLBACK_AGREE })
+        // 棋子仍在，未曾回退
+        assertEquals(Side.BLACK, vm.state.value.board.cells[0][0])
+    }
+
     /**
      * 建 VM 并等它订阅上事件流后再投递 Connected
      *
      * 真实传输层是在自己的 IO 协程里异步上报 Connected 的，这里也必须在订阅建立之后发，
      * 否则 replay=0 的 SharedFlow 会把事件直接丢掉。
+     *
+     * [turnMillis] 默认关掉倒计时：若开着，末尾的 `advanceUntilIdle()` 会把表一路推到归零，
+     * 那些用例就会在断言前先被超时判负（详见 [TurnCountdown] 关于测试的两条约定）。
      */
     private suspend fun TestScope.startVm(
         transport: FakeTransport,
         mySide: Side,
+        turnMillis: Long = 0,
     ): NetGameViewModel {
         val vm = NetGameViewModel(
             mode = GameMode.BLUETOOTH,
             mySide = mySide,
             transport = transport,
+            turnDurationMillis = turnMillis,
         )
         advanceUntilIdle()
         if (transport.connected) {
@@ -216,7 +307,10 @@ class NetGameViewModelTest {
         override val events: SharedFlow<NetEvent> = _events.asSharedFlow()
 
         val moves = mutableListOf<Pair<Int, Int>>()
-        var lastSent: TcpType? = null
+
+        /** 依次发出的全部指令，用于断言"保持沉默" */
+        val sent = mutableListOf<TcpType>()
+        val lastSent: TcpType? get() = sent.lastOrNull()
         var connected = true
 
         override fun start() = Unit
@@ -225,39 +319,43 @@ class NetGameViewModelTest {
 
         override fun sendMove(x: Int, y: Int) {
             moves += x to y
-            lastSent = TcpType.ADD_CHESS
+            sent += TcpType.ADD_CHESS
         }
 
         override fun askRollback() {
-            lastSent = TcpType.ROLLBACK_ASK
+            sent += TcpType.ROLLBACK_ASK
         }
 
         override fun agreeRollback() {
-            lastSent = TcpType.ROLLBACK_AGREE
+            sent += TcpType.ROLLBACK_AGREE
         }
 
         override fun rejectRollback() {
-            lastSent = TcpType.ROLLBACK_REJECT
+            sent += TcpType.ROLLBACK_REJECT
         }
 
         override fun requestRestart() {
-            lastSent = TcpType.RESTART
+            sent += TcpType.RESTART
         }
 
         override fun askDraw() {
-            lastSent = TcpType.DRAW_ASK
+            sent += TcpType.DRAW_ASK
         }
 
         override fun agreeDraw() {
-            lastSent = TcpType.DRAW_AGREE
+            sent += TcpType.DRAW_AGREE
         }
 
         override fun rejectDraw() {
-            lastSent = TcpType.DRAW_REJECT
+            sent += TcpType.DRAW_REJECT
         }
 
         override fun sendResign() {
-            lastSent = TcpType.RESIGN
+            sent += TcpType.RESIGN
+        }
+
+        override fun sendTimeout() {
+            sent += TcpType.TIMEOUT
         }
 
         fun emit(event: NetEvent) {

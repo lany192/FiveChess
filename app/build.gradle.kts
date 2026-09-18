@@ -1,5 +1,13 @@
+import java.time.Duration
+
 plugins {
     alias(libs.plugins.android.application)
+}
+
+// 倒计时的协程若没跑到归零就结束测试体，runTest 收尾排空队列会静默挂死测试任务；
+// 这里给它一个上限，让挂死表现为失败而不是无限等待
+tasks.withType<Test>().configureEach {
+    timeout.set(Duration.ofMinutes(5))
 }
 
 android {

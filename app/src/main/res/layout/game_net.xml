@@ -124,6 +124,18 @@
             </LinearLayout>
         </com.google.android.material.card.MaterialCardView>
 
+        <!-- 每步限时倒计时 -->
+        <TextView
+            android:id="@+id/countdown"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="@dimen/spacing_s"
+            android:fontFamily="monospace"
+            android:gravity="center"
+            android:text="@string/countdown_idle"
+            android:textAppearance="?attr/textAppearanceLabelLarge"
+            android:textColor="?attr/colorOnSurfaceVariant" />
+
         <!-- 终局结果横幅 -->
         <com.google.android.material.card.MaterialCardView
             android:id="@+id/result_banner"

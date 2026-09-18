@@ -22,10 +22,13 @@ sealed interface NetGameIntent {
     data object ResignConfirmed : NetGameIntent
 }
 
-/** 终局结果（含引擎五连胜与求和/认输宣告，横幅随状态幂等渲染，不用弹窗） */
+/** 终局结果（含引擎五连胜与求和/认输/超时宣告，横幅随状态幂等渲染，不用弹窗） */
 sealed interface NetGameEnd {
     data class Win(val winner: Side) : NetGameEnd
     data object Draw : NetGameEnd
+
+    /** 每步限时归零判负，区别于五连的 [Win]，仅影响横幅文案 */
+    data class Timeout(val winner: Side) : NetGameEnd
 }
 
 data class NetGameState(
@@ -36,6 +39,8 @@ data class NetGameState(
     val blackWins: Int = 0,
     val whiteWins: Int = 0,
     val end: NetGameEnd? = null,
+    /** 当前行棋方剩余毫秒；未连上或 <= 0 表示不计时 */
+    val remainingMillis: Long = 0,
 )
 
 sealed interface NetGameEffect {
