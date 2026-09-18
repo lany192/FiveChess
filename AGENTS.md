@@ -14,6 +14,16 @@ Android 五子棋应用，单 `app` 模块，100% Kotlin。手写 MVI（无 MVI 
 - AGP 9.x 内置 Kotlin 2.2 —— 不要在 plugins 里加 `org.jetbrains.kotlin.android`；Kotlin stdlib 会自动注入。
 - 测试：`./gradlew :app:testDebugUnitTest`（覆盖 `domain/engine`、`domain/ai` 与 `data/net/Protocol.kt` 有线协议的 JVM 测试）。
 
+## 发布产物加固（仅 release）
+
+`app/build.gradle.kts` 通过 AGP scoped-artifacts transform 把 `buildSrc` 的 `EncryptStringsTask` 接进了 release 编译链：在 R8 之前用 ASM 把每个类的 String 常量逐条 XOR 加密（每条常量一个随机偏移），并注入 `com.github.lany192.gomoku.guard.StrGuard` 负责运行时解密（`ldc` 密文 → `StrGuard.d(密文, 偏移)`）。构建日志会打印“字符串加密：N 个类、M 条字符串常量”。
+
+- 任务只改写 `ldc` 指令：写在注解参数里的字符串（如 `@Suppress("...")`）不会被加密，会以明文留在 dex 里 —— 别把敏感常量放注解参数。同理，字符串加密只覆盖常量池，不覆盖资源文件（strings.xml 等），资源混淆是另一个话题。
+- 解密在运行时还原原值，业务代码无感知；`domain/` 的纯 Kotlin 约束不受影响。
+- **debug 构建不加密**（保留明文方便调试）：查到"字符串还是明文"时先确认是不是在 debug 变体里查的。
+- R8 会重命名注入的 `StrGuard` 类和 `d` 方法（映射见 `mapping.txt`），这是预期行为，不要为它加 keep。
+- `-keepattributes !LineNumberTable` 实测是空操作（规则进了合并配置但 dex 行号原样保留，见 `proguard-rules.pro` 注释），行号在 release 产物里无法通过 R8 配置去除。
+
 ## 架构
 
 分层依赖，外层可依赖内层，禁止反向：

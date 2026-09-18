@@ -1,3 +1,6 @@
+import com.android.build.api.artifact.ScopedArtifact
+import com.android.build.api.variant.ScopedArtifacts
+import com.github.lany192.gomoku.build.EncryptStringsTask
 import java.time.Duration
 
 plugins {
@@ -57,6 +60,30 @@ android {
     buildFeatures {
         buildConfig = true
         viewBinding = true
+    }
+    packaging {
+        resources {
+            // 协程的调试探针标记文件，产物里没有任何代码读取它，去掉可少一份版本指纹
+            excludes += "/DebugProbesKt.bin"
+        }
+    }
+}
+
+// release 产物在 R8 之前先加密项目自己的字符串常量（见 buildSrc/EncryptStringsTask）
+androidComponents {
+    onVariants { variant ->
+        if (variant.name != "release") return@onVariants
+        val encryptStrings = tasks.register<EncryptStringsTask>("encryptReleaseStrings") {
+            description = "Encrypt release strings constants"
+        }
+        variant.artifacts.forScope(ScopedArtifacts.Scope.PROJECT)
+            .use(encryptStrings)
+            .toTransform(
+                ScopedArtifact.CLASSES,
+                EncryptStringsTask::inputJars,
+                EncryptStringsTask::inputDirectories,
+                EncryptStringsTask::outputJar,
+            )
     }
 }
 
