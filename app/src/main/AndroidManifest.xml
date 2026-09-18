@@ -56,6 +56,10 @@
         <activity
             android:name=".ui.robot.RobotGameActivity"
             android:exported="false" />
+        <activity
+            android:name=".ui.robot.AiSelectActivity"
+            android:exported="false"
+            android:label="@string/ai_select_title" />
     </application>
 
 </manifest>

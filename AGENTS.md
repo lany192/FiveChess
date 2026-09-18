@@ -4,7 +4,7 @@
 
 ## 项目
 
-Android 五子棋应用，单 `app` 模块，100% Kotlin。手写 MVI（无 MVI 框架、无 DI），View 体系 + ViewBinding（无 Compose）。四种对局模式：本地双人（`ui/person`）、人机五档难度（`ui/robot`，引擎在 `domain/ai/RobotAI.kt`）、局域网 WiFi 联机（`ui/connect`）、蓝牙联机（`ui/bt`）。两种联机模式的对局页与对局逻辑共用 `ui/net`，差别只在建连层。
+Android 五子棋应用，单 `app` 模块，100% Kotlin。手写 MVI（无 MVI 框架、无 DI），View 体系 + ViewBinding（无 Compose）。四种对局模式：本地双人（`ui/person`）、人机 25 种算法 × 5 档难度（`ui/robot`，对局页顶部「对手设置」进 `ui/robot/AiSelectActivity`，引擎在 `domain/ai/`）、局域网 WiFi 联机（`ui/connect`）、蓝牙联机（`ui/bt`）。两种联机模式的对局页与对局逻辑共用 `ui/net`，差别只在建连层。
 
 ## 构建
 
@@ -12,6 +12,7 @@ Android 五子棋应用，单 `app` 模块，100% Kotlin。手写 MVI（无 MVI 
 - `settings.gradle.kts` 中阿里云镜像仓库优先（国内网络）；依赖解析失败通常是镜像问题，而非构件缺失。
 - Java 11 / `jvmTarget = 11`，compileSdk/targetSdk 36，minSdk 24。
 - AGP 9.x 内置 Kotlin 2.2 —— 不要在 plugins 里加 `org.jetbrains.kotlin.android`；Kotlin stdlib 会自动注入。
+- Room 用 KSP 生成代码：**KSP 必须用 2.3.x 的独立版本号**（如 `2.3.12`），2.2.x 的旧版本号会报 "Using kotlin.sourceSets DSL to add Kotlin sources is not allowed with built-in Kotlin"。
 - 测试：`./gradlew :app:testDebugUnitTest`（覆盖 `domain/engine`、`domain/ai` 与 `data/net/Protocol.kt` 有线协议的 JVM 测试）。
 
 ## 发布产物加固（仅 release）
@@ -28,11 +29,23 @@ Android 五子棋应用，单 `app` 模块，100% Kotlin。手写 MVI（无 MVI 
 
 分层依赖，外层可依赖内层，禁止反向：
 
-- `domain/` —— 纯 Kotlin，**禁止 `android.*` 导入**（这是保持 JVM 可测的前提）。`engine/GameEngine` 掌管规则并返回 `EngineResult(state, events)`；`model/` 持有不可变快照（`GameState`、`Side`，其中 BLACK=1/WHITE=2，与 AI 的 `Array<IntArray>` 编码一致）；`ai/RobotAI` + `ai/Difficulty`（NOVICE/EASY/MEDIUM/HARD/MASTER 五档：`depth=0` 的档位不搜索、只按启发式选点，且会按 `alertPercent` 概率看漏连五战术）。
+- `domain/` —— 纯 Kotlin，**禁止 `android.*` 导入**（这是保持 JVM 可测的前提）。`engine/GameEngine` 掌管规则并返回 `EngineResult(state, events)`；`model/` 持有不可变快照（`GameState`、`Side`，其中 BLACK=1/WHITE=2，与 AI 的 `Array<IntArray>` 编码一致）。
 - `core/mvi/MviViewModel` —— 基类：Intent 经无限容量 `Channel` 串行处理（对齐旧 Handler 主线程队列语义）；State 是 `StateFlow`，渲染须幂等；Effect 是 `SharedFlow(replay=0)`，承载一次性 toast/弹窗/导航。每个特性在 `ui/<feature>/` 下含 `<Feature>Contract.kt`（Intent/State/Effect）、`<Feature>ViewModel.kt`、`<Feature>Activity.kt`。例外是 `ui/net/`：联机对局页与对局 ViewModel 由局域网和蓝牙共用，不是单一特性。
 - `data/net/` —— `Protocol.kt`（字节级编解码 + `TcpFrameReader`）、`LanDiscoveryManager`（UDP 发现/握手/聊天）、`LanGameClient`（TCP 对局）、`GameTransport`（对局传输抽象，`ui/net` 唯一依赖的建连接口）。阻塞式 `DatagramSocket.receive()` / `Socket.read()` 不响应协程取消 —— 须先关闭 socket 再取消 scope 来停止。
 - `data/bt/` —— `BtDiscoveryManager`（已配对列表 + 系统发现广播 + RFCOMM 握手）、`BtGameClient`（RFCOMM 对局，实现 `GameTransport`）。`accept()`/`read()` 同样靠关闭 socket 打断。`BtDiscoveryManager` 是一次性的：`stop()` 会取消 scope，不可复用。
 - `ui/common/GameBoardView` —— SurfaceView 棋盘；`render(state)` 是唯一渲染入口，`onCellTapped` 是唯一输入回调；自身不含任何对局逻辑。
+
+## 人机 AI（`domain/ai/`）
+
+用户可选 25 种算法（`AiAlgorithm`，按 `AiFamily` 六家族连续排列，顺序即 UI 展示顺序）；算法文案与选择页在 `ui/robot`（`R.string` 只在 UI 层，`domain` 不含资源 id）。
+
+- 统一接口 `GomokuAI`：棋盘 `Array<IntArray>` 按 `[x][y]` 索引，0 空 / 1 黑（人）/ 2 白（AI 永远执白）；**实现必须先拷贝入参**。`AiAlgorithm.SHAPE_SCORE` 即原 `RobotAI.kt`（行为冻结，由 `RobotAITest` 守护），也是 `AiAlgorithm.DEFAULT`。
+- `AiEngineFactory` 是算法→实现的唯一映射（穷尽 `when`，漏项编译失败），`AiTunings` 是档位→参数的唯一映射（时间预算、模拟数、表位数都有硬上限），`AiEnginePool` 只缓存学习类引擎（切走再切回不丢已学权重）。
+- 新引擎一律继承 `core/AbstractAiEngine`：拷贝棋盘 → 快照档位 → `Tactics.mandatory` 战术预判（我连五 > 堵对手连五 > 我活四，按 `alertPercent` 概率看漏）→ 子类只写 `decide()`。**`Tactics` 底线不可省**，否则弱档会送人头。
+- 共享设施在 `core/`：`ShapeScores`（分值常量）、`BoardScanner`、`CandidateGenerator`（候选生成，排序必须全序，保证种子确定性）、`Evaluator` 系列（棋型 / 模式表 / 神经网络 / 学习类共用的线性价值函数）。
+- 学习类（TD / Q / AlphaZero / 遗传）权重按枚举名存 Room（`data/db/RoomAiWeightStore`，modelId = 算法枚举名）。`AiWeightStore` 是**阻塞式**接口，只在后台线程调用；引擎首次 `getPosition` 懒加载权重。
+- 确定性约定：随机走注入的 `Random`，时间预算走注入的 `clock: () -> Long`（测试传 `{ 0L }` 关掉预算）；引擎构造必须 O(1)，大表一律 `by lazy`。
+- `ui/robot/RobotGameViewModel`：搜索与 `onGameOver`/`onGameReset` 共用一条单线程 `aiDispatcher`，满足"同一实例不可并发调用"；思考中途改算法记 `pendingAlgorithm`，等本次落子落地后再换引擎（任一时刻只有一个引擎在跑）。
 
 ## 有线协议冻结（设备间互通）
 

@@ -1,13 +1,19 @@
 package com.github.lany192.gomoku.domain.ai
 
+import com.github.lany192.gomoku.domain.ai.core.BoardScanner
+import com.github.lany192.gomoku.domain.ai.core.Candidate
+import com.github.lany192.gomoku.domain.ai.core.CandidateGenerator
+import com.github.lany192.gomoku.domain.ai.core.ShapeEvaluator
+import com.github.lany192.gomoku.domain.ai.core.ShapeScores
+import com.github.lany192.gomoku.domain.ai.core.Stone
+import com.github.lany192.gomoku.domain.ai.core.Tactics
 import com.github.lany192.gomoku.domain.model.Point
-import java.util.Collections
 import kotlin.random.Random
 
 /**
  * 电脑AI：棋型评估 + 带Alpha-Beta剪枝的极小极大搜索
  *
- * 输入棋盘沿用整型编码：0=空 1=黑 2=白。
+ * 也是 25 种可选算法中的「棋型评分」（默认档）。输入棋盘沿用整型编码：0=空 1=黑 2=白。
  * 非线程安全：同一实例不可并发调用（由 ViewModel 保证同一时刻只有一个搜索任务）。
  */
 class RobotAI(
@@ -15,44 +21,49 @@ class RobotAI(
     private val height: Int,
     level: Difficulty = Difficulty.MEDIUM,
     private val random: Random = Random.Default,
-) {
-    var level: Difficulty = level
+) : GomokuAI {
+
+    override var level: Difficulty = level
+
+    private val scanner = BoardScanner(width, height)
+    private val generator = CandidateGenerator(width, height, scanner)
+    private val evaluator = ShapeEvaluator(width, height)
 
     /**
      * 获取最佳下棋位置
      */
-    fun getPosition(map: Array<IntArray>): Point {
+    override fun getPosition(board: Array<IntArray>): Point {
         // 复制棋盘，避免搜索过程修改调用方的棋盘
-        val board = Array(width) { x -> map[x].copyOf() }
+        val local = Array(width) { x -> board[x].copyOf() }
         // 快照档位：思考途中改档不应让本次搜索读到新的候选宽度/半径
         val config = level
 
-        val candidates = generateCandidates(board, config.breadth, config.radius)
+        val candidates = generator.generate(local, config.breadth, config.radius, AI, HUMAN)
         // 低难度按概率看漏战术：没留意时连五点被剔除出候选，避免误打误撞仍封堵/取胜
         val alert = random.nextInt(100) < config.alertPercent
         if (alert) {
             // 1.自己下一手能连五，直接取胜
-            findFivePoint(board, candidates, AI)?.let { return it }
+            Tactics.findFive(local, candidates, AI, scanner)?.let { return it }
             // 2.对手下一手能连五，必须封堵
-            findFivePoint(board, candidates, HUMAN)?.let { return it }
+            Tactics.findFive(local, candidates, HUMAN, scanner)?.let { return it }
         }
         // 3.不搜索的档位只在启发式候选里挑，不做活四检测，留出破绽；
         //   连五点留给上面的战术判定（没留意到就一并剔除，避免误打误撞仍封堵/取胜）
         if (config.depth == 0) {
-            val pool = candidates.filterNot { isFivePoint(board, it) }
+            val pool = candidates.filterNot { isFivePoint(local, it) }
             return heuristicMove(pool.ifEmpty { candidates }, config)
         }
         // 4.自己能形成活四（对手堵不住），必胜
-        findLiveFourPoint(board, candidates, AI)?.let { return it }
+        Tactics.findLiveFour(local, candidates, AI, scanner)?.let { return it }
 
-        val best = searchRoot(board, candidates, config)
+        val best = searchRoot(local, candidates, config)
         if (best != null) {
             return Point(best.x, best.y)
         }
         // 兜底：找任意空位
         for (x in 0 until width) {
             for (y in 0 until height) {
-                if (board[x][y] == EMPTY) return Point(x, y)
+                if (local[x][y] == EMPTY) return Point(x, y)
             }
         }
         return Point(width / 2, height / 2)
@@ -63,12 +74,12 @@ class RobotAI(
      */
     private fun searchRoot(board: Array<IntArray>, candidates: List<Candidate>, level: Difficulty): Candidate? {
         var best: Candidate? = null
-        var alpha = -WIN_SCORE * 2
-        val beta = WIN_SCORE * 2
+        var alpha = -ShapeScores.WIN * 2
+        val beta = ShapeScores.WIN * 2
         for (c in candidates) {
             board[c.x][c.y] = AI
-            val score = if (isFiveAt(board, c.x, c.y, AI)) {
-                WIN_SCORE
+            val score = if (scanner.isFiveAt(board, c.x, c.y, AI)) {
+                ShapeScores.WIN
             } else {
                 search(board, level.depth - 1, alpha, beta, aiTurn = false, ply = 1, level = level)
             }
@@ -99,21 +110,21 @@ class RobotAI(
         level: Difficulty,
     ): Long {
         if (depth <= 0) {
-            return evaluate(board)
+            return evaluator.evaluate(board, AI)
         }
-        val candidates = generateCandidates(board, level.breadth, level.radius)
+        val candidates = generator.generate(board, level.breadth, level.radius, AI, HUMAN)
         if (candidates.isEmpty()) {
-            return evaluate(board)
+            return evaluator.evaluate(board, AI)
         }
         val color = if (aiTurn) AI else HUMAN
-        var best = if (aiTurn) -WIN_SCORE * 2 else WIN_SCORE * 2
+        var best = if (aiTurn) -ShapeScores.WIN * 2 else ShapeScores.WIN * 2
         var a = alpha
         var b = beta
         for (c in candidates) {
             board[c.x][c.y] = color
-            val score = if (isFiveAt(board, c.x, c.y, color)) {
+            val score = if (scanner.isFiveAt(board, c.x, c.y, color)) {
                 // 落子即连五，越早赢分越高
-                if (aiTurn) WIN_SCORE - ply else -(WIN_SCORE - ply)
+                if (aiTurn) ShapeScores.WIN - ply else -(ShapeScores.WIN - ply)
             } else {
                 search(board, depth - 1, a, b, !aiTurn, ply + 1, level)
             }
@@ -132,117 +143,15 @@ class RobotAI(
     }
 
     /**
-     * 生成候选点：只考虑已有棋子附近的空位，按落子后的局部棋型分排序，取前limit个
-     */
-    private fun generateCandidates(board: Array<IntArray>, limit: Int, radius: Int): List<Candidate> {
-        val list = ArrayList<Candidate>()
-        val centerX = width / 2
-        val centerY = height / 2
-        for (x in 0 until width) {
-            for (y in 0 until height) {
-                if (board[x][y] != EMPTY || !hasNeighbor(board, x, y, radius)) continue
-                val score = pointScore(board, x, y, AI) + pointScore(board, x, y, HUMAN) -
-                        (Math.abs(x - centerX) + Math.abs(y - centerY))
-                list.add(Candidate(x, y, score))
-            }
-        }
-        if (list.isEmpty()) {
-            list.add(Candidate(width / 2, height / 2, 0))
-        }
-        Collections.sort(list) { a, b -> b.score.compareTo(a.score) }
-        return if (list.size > limit) list.subList(0, limit) else list
-    }
-
-    /**
-     * 假设在(x,y)落下color子，四个方向的局部棋型分之和（用于候选点排序）
-     */
-    private fun pointScore(board: Array<IntArray>, x: Int, y: Int, color: Int): Long {
-        var total = 0L
-        for (d in DIRS) {
-            lineInfo(board, x, y, color, d)
-            total += shapeScore(lineCount, lineOpens)
-        }
-        return total
-    }
-
-    /**
-     * 评估整个棋盘，返回AI视角的局分（正值对AI有利）
-     */
-    private fun evaluate(board: Array<IntArray>): Long {
-        var mine = 0L
-        var opponent = 0L
-        for (d in DIRS) {
-            for (x in 0 until width) {
-                for (y in 0 until height) {
-                    val ex = x + 4 * d[0]
-                    val ey = y + 4 * d[1]
-                    if (!inBoard(ex, ey)) continue
-                    var mineCount = 0
-                    var oppCount = 0
-                    for (i in 0 until 5) {
-                        when (board[x + i * d[0]][y + i * d[1]]) {
-                            AI -> mineCount++
-                            HUMAN -> oppCount++
-                        }
-                    }
-                    // 同时包含双方棋子或全空的窗口没有价值
-                    if (mineCount > 0 && oppCount > 0) continue
-                    if (mineCount == 0 && oppCount == 0) continue
-                    var opens = 0
-                    if (isEmpty(board, x - d[0], y - d[1])) opens++
-                    if (isEmpty(board, ex + d[0], ey + d[1])) opens++
-                    if (mineCount > 0) {
-                        mine += shapeScore(mineCount, opens)
-                    } else {
-                        opponent += shapeScore(oppCount, opens)
-                    }
-                }
-            }
-        }
-        // 对手棋型权重略高，让AI防守更稳
-        return mine - opponent - opponent / 10
-    }
-
-    /**
-     * 在候选点中寻找color落子即连五的位置
-     */
-    private fun findFivePoint(board: Array<IntArray>, candidates: List<Candidate>, color: Int): Point? {
-        for (c in candidates) {
-            board[c.x][c.y] = color
-            val five = isFiveAt(board, c.x, c.y, color)
-            board[c.x][c.y] = EMPTY
-            if (five) return Point(c.x, c.y)
-        }
-        return null
-    }
-
-    /**
      * 是否是"任一方落子即连五"的点
      */
     private fun isFivePoint(board: Array<IntArray>, c: Candidate): Boolean {
         board[c.x][c.y] = AI
-        val aiFive = isFiveAt(board, c.x, c.y, AI)
+        val aiFive = scanner.isFiveAt(board, c.x, c.y, AI)
         board[c.x][c.y] = HUMAN
-        val humanFive = isFiveAt(board, c.x, c.y, HUMAN)
+        val humanFive = scanner.isFiveAt(board, c.x, c.y, HUMAN)
         board[c.x][c.y] = EMPTY
         return aiFive || humanFive
-    }
-
-    /**
-     * 寻找能形成活四的必胜点（两个连五点，对手只能堵一个）
-     */
-    private fun findLiveFourPoint(board: Array<IntArray>, candidates: List<Candidate>, color: Int): Point? {
-        for (c in candidates) {
-            board[c.x][c.y] = color
-            var liveFour = 0
-            for (d in DIRS) {
-                lineInfo(board, c.x, c.y, color, d)
-                if (lineCount == 4 && lineOpens >= 2) liveFour++
-            }
-            board[c.x][c.y] = EMPTY
-            if (liveFour > 0) return Point(c.x, c.y)
-        }
-        return null
     }
 
     /**
@@ -257,108 +166,10 @@ class RobotAI(
         return Point(candidate.x, candidate.y)
     }
 
-    /**
-     * 统计(x,y)处color子在方向d上的连子数（该处视为已落下color子）及两端的开放数
-     */
-    private fun lineInfo(board: Array<IntArray>, x: Int, y: Int, color: Int, d: IntArray) {
-        var count = 1
-        var opens = 0
-        var i = 1
-        while (inBoard(x + d[0] * i, y + d[1] * i) && board[x + d[0] * i][y + d[1] * i] == color) {
-            count++
-            i++
-        }
-        if (isEmpty(board, x + d[0] * i, y + d[1] * i)) opens++
-        var j = 1
-        while (inBoard(x - d[0] * j, y - d[1] * j) && board[x - d[0] * j][y - d[1] * j] == color) {
-            count++
-            j++
-        }
-        if (isEmpty(board, x - d[0] * j, y - d[1] * j)) opens++
-        lineCount = count
-        lineOpens = opens
-    }
-
-    /**
-     * 判断(x,y)处落下color子后是否连成五子
-     */
-    private fun isFiveAt(board: Array<IntArray>, x: Int, y: Int, color: Int): Boolean {
-        for (d in DIRS) {
-            lineInfo(board, x, y, color, d)
-            if (lineCount >= 5) return true
-        }
-        return false
-    }
-
-    /**
-     * 棋型分：按连子数和开放端数取值
-     */
-    private fun shapeScore(count: Int, opens: Int): Long {
-        if (count >= 5) return SCORE_FIVE
-        return when (count) {
-            4 -> when {
-                opens >= 2 -> SCORE_LIVE_FOUR
-                opens == 1 -> SCORE_RUSH_FOUR
-                else -> 0
-            }
-            3 -> when {
-                opens >= 2 -> SCORE_LIVE_THREE
-                opens == 1 -> SCORE_SLEEP_THREE
-                else -> 0
-            }
-            2 -> when {
-                opens >= 2 -> SCORE_LIVE_TWO
-                opens == 1 -> SCORE_SLEEP_TWO
-                else -> 0
-            }
-            1 -> when {
-                opens >= 2 -> SCORE_LIVE_ONE
-                opens == 1 -> SCORE_SLEEP_ONE
-                else -> 0
-            }
-            else -> 0
-        }
-    }
-
-    private fun hasNeighbor(board: Array<IntArray>, x: Int, y: Int, radius: Int): Boolean {
-        for (i in maxOf(0, x - radius)..minOf(width - 1, x + radius)) {
-            for (j in maxOf(0, y - radius)..minOf(height - 1, y + radius)) {
-                if (board[i][j] != EMPTY) return true
-            }
-        }
-        return false
-    }
-
-    private fun inBoard(x: Int, y: Int) = x in 0 until width && y in 0 until height
-
-    private fun isEmpty(board: Array<IntArray>, x: Int, y: Int) =
-        inBoard(x, y) && board[x][y] == EMPTY
-
-    private class Candidate(val x: Int, val y: Int, val score: Long)
-
     private companion object {
         // 棋盘整型编码：1=黑（人类），2=白（AI）
-        const val EMPTY = 0
-        const val HUMAN = 1
-        const val AI = 2
-
-        // 横、竖、两条对角线
-        val DIRS = arrayOf(intArrayOf(1, 0), intArrayOf(0, 1), intArrayOf(1, 1), intArrayOf(1, -1))
-
-        // 棋型分值：连五 > 活四 > 冲四 > 活三 > 眠三 > 活二 > 眠二
-        const val SCORE_FIVE = 100000000L
-        const val SCORE_LIVE_FOUR = 10000000L
-        const val SCORE_RUSH_FOUR = 1000000L
-        const val SCORE_LIVE_THREE = 200000L
-        const val SCORE_SLEEP_THREE = 20000L
-        const val SCORE_LIVE_TWO = 5000L
-        const val SCORE_SLEEP_TWO = 500L
-        const val SCORE_LIVE_ONE = 100L
-        const val SCORE_SLEEP_ONE = 10L
-        const val WIN_SCORE = SCORE_FIVE * 10
+        const val EMPTY = Stone.EMPTY
+        const val HUMAN = Stone.BLACK
+        const val AI = Stone.WHITE
     }
-
-    // lineInfo 的输出，复用字段避免热路径上的对象分配
-    private var lineCount = 0
-    private var lineOpens = 0
 }

@@ -1,11 +1,9 @@
 package com.github.lany192.gomoku.ui.robot
 
+import android.app.Activity
 import android.os.Bundle
 import android.view.View
-import android.view.ViewGroup
-import android.widget.AdapterView
-import android.widget.ArrayAdapter
-import android.widget.TextView
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.activity.viewModels
 import androidx.appcompat.app.AppCompatActivity
 import androidx.lifecycle.Lifecycle
@@ -15,9 +13,12 @@ import androidx.lifecycle.repeatOnLifecycle
 import androidx.lifecycle.viewmodel.initializer
 import androidx.lifecycle.viewmodel.viewModelFactory
 import com.github.lany192.gomoku.R
+import com.github.lany192.gomoku.data.db.AiWeightsDatabase
+import com.github.lany192.gomoku.data.db.RoomAiWeightStore
+import com.github.lany192.gomoku.data.settings.SharedPrefsAiAlgorithmStore
 import com.github.lany192.gomoku.data.settings.SharedPrefsAiLevelStore
 import com.github.lany192.gomoku.databinding.GameSingleBinding
-import com.github.lany192.gomoku.domain.ai.Difficulty
+import com.github.lany192.gomoku.domain.ai.AiEnginePool
 import com.github.lany192.gomoku.domain.model.Side
 import com.github.lany192.gomoku.ui.common.setupEdgeToEdge
 import kotlinx.coroutines.launch
@@ -31,9 +32,29 @@ class RobotGameActivity : AppCompatActivity() {
         viewModelFactory {
             initializer {
                 val app = this[ViewModelProvider.AndroidViewModelFactory.APPLICATION_KEY]!!
-                RobotGameViewModel(levelStore = SharedPrefsAiLevelStore(app))
+                RobotGameViewModel(
+                    enginePool = AiEnginePool(
+                        width = BOARD_SIZE,
+                        height = BOARD_SIZE,
+                        weightStore = RoomAiWeightStore(AiWeightsDatabase.get(app).aiWeightsDao()),
+                    ),
+                    levelStore = SharedPrefsAiLevelStore(app),
+                    algorithmStore = SharedPrefsAiAlgorithmStore(app),
+                )
             }
         }
+    }
+
+    /** 选择页返回即生效：同时带回落库后的难度与算法 */
+    private val selectAi = registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
+        val data = result.data
+        if (result.resultCode != Activity.RESULT_OK || data == null) return@registerForActivityResult
+        val (algorithm, level) = AiSelectActivity.parseResult(
+            data.getStringExtra(AiSelectActivity.EXTRA_ALGORITHM),
+            data.getIntExtra(AiSelectActivity.EXTRA_LEVEL, -1),
+        ) ?: return@registerForActivityResult
+        viewModel.dispatch(RobotGameIntent.AlgorithmSelected(algorithm))
+        viewModel.dispatch(RobotGameIntent.LevelSelected(level))
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -52,7 +73,10 @@ class RobotGameActivity : AppCompatActivity() {
         binding.rollback.setOnClickListener {
             viewModel.dispatch(RobotGameIntent.RollbackClicked)
         }
-        setupDifficultySpinner()
+        binding.opponentSettings.setOnClickListener {
+            val state = viewModel.state.value
+            selectAi.launch(AiSelectActivity.intent(this, state.aiAlgorithm, state.aiLevel))
+        }
         observeViewModel()
     }
 
@@ -75,53 +99,17 @@ class RobotGameActivity : AppCompatActivity() {
         }
         binding.blackWin.text = state.blackWins.toString()
         binding.whiteWin.text = state.whiteWins.toString()
-        if (binding.difficulty.selectedItemPosition != state.aiLevel.ordinal) {
-            binding.difficulty.setSelection(state.aiLevel.ordinal)
-        }
+        binding.opponentSummary.text = getString(
+            R.string.algorithm_difficulty_format,
+            getString(algorithmNameRes(state.aiAlgorithm)),
+            getString(levelNameRes(state.aiLevel)),
+        )
         val winner = state.winner
         binding.resultBanner.visibility = if (winner != null) View.VISIBLE else View.GONE
         if (winner != null) {
             binding.resultText.setText(
                 if (winner == Side.BLACK) R.string.msg_black_win else R.string.msg_white_win
             )
-        }
-    }
-
-    private fun levelName(level: Difficulty): String = getString(
-        when (level) {
-            Difficulty.NOVICE -> R.string.ai_level_novice
-            Difficulty.EASY -> R.string.ai_level_easy
-            Difficulty.MEDIUM -> R.string.ai_level_medium
-            Difficulty.HARD -> R.string.ai_level_hard
-            Difficulty.MASTER -> R.string.ai_level_master
-        }
-    )
-
-    private fun setupDifficultySpinner() {
-        binding.difficulty.adapter = object : ArrayAdapter<String>(
-            this,
-            android.R.layout.simple_spinner_item,
-            Difficulty.entries.map(::levelName),
-        ) {
-            // 收起态带"难度"前缀，下拉项只显示难度名
-            override fun getView(position: Int, convertView: View?, parent: ViewGroup): View =
-                super.getView(position, convertView, parent).apply {
-                    (this as TextView).text = getString(R.string.difficulty_format, getItem(position))
-                }
-        }.apply {
-            setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item)
-        }
-        // 先对齐已存难度再挂监听，避免适配器初始化触发的首帧回调误发改写
-        binding.difficulty.setSelection(viewModel.state.value.aiLevel.ordinal, false)
-        binding.difficulty.onItemSelectedListener = object : AdapterView.OnItemSelectedListener {
-            override fun onItemSelected(parent: AdapterView<*>?, view: View?, position: Int, id: Long) {
-                val level = Difficulty.entries[position]
-                if (level != viewModel.state.value.aiLevel) {
-                    viewModel.dispatch(RobotGameIntent.LevelSelected(level))
-                }
-            }
-
-            override fun onNothingSelected(parent: AdapterView<*>?) = Unit
         }
     }
 

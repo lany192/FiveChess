@@ -1,7 +1,7 @@
 <resources>
     <string name="app_name">五子棋</string>
     <string name="app_subtitle">原木棋盘 · 墨绿对弈</string>
-    <string name="mode_desc_robot">入门 / 简单 / 中等 / 困难 / 大师五种难度</string>
+    <string name="mode_desc_robot">25 种算法 × 5 档难度</string>
     <string name="mode_desc_person">同屏轮流落子</string>
     <string name="mode_desc_lan">连接同一 WiFi 的玩家</string>
     <string name="mode_desc_bt">连接附近的蓝牙设备玩家</string>
@@ -36,12 +36,47 @@
     <string name="cancel">取消</string>
     <string name="scan_hint">搜索连接同一 WiFi 的玩家</string>
     <string name="game_player">玩家</string>
-    <string name="difficulty_format">难度：%1$s</string>
     <string name="ai_level_novice">入门</string>
     <string name="ai_level_easy">简单</string>
     <string name="ai_level_medium">中等</string>
     <string name="ai_level_hard">困难</string>
     <string name="ai_level_master">大师</string>
+    <!-- 对手设置（算法 + 难度） -->
+    <string name="ai_select_title">对手设置</string>
+    <string name="algorithm">算法</string>
+    <string name="difficulty">难度</string>
+    <string name="algorithm_difficulty_format">算法：%1$s · 难度：%2$s</string>
+    <string name="ai_family_search">搜索类</string>
+    <string name="ai_family_threat">威胁搜索</string>
+    <string name="ai_family_evaluation">评估类</string>
+    <string name="ai_family_simulation">随机模拟</string>
+    <string name="ai_family_learning">学习类</string>
+    <string name="ai_family_misc">其他</string>
+    <string name="ai_algo_minimax">极小极大</string>
+    <string name="ai_algo_alpha_beta">Alpha-Beta 剪枝</string>
+    <string name="ai_algo_pvs">主要变例搜索</string>
+    <string name="ai_algo_mtd_f">MTD(f) 零窗口迭代</string>
+    <string name="ai_algo_iterative_deepening">迭代加深</string>
+    <string name="ai_algo_transposition_table">置换表</string>
+    <string name="ai_algo_killer_history">杀手/历史启发</string>
+    <string name="ai_algo_vcf">连续冲四（VCF）</string>
+    <string name="ai_algo_vct">连续威胁（VCT）</string>
+    <string name="ai_algo_kill_search">算杀</string>
+    <string name="ai_algo_shape_score">棋型评分（经典）</string>
+    <string name="ai_algo_pattern_table">模式匹配</string>
+    <string name="ai_algo_neural_eval">神经网络评估</string>
+    <string name="ai_algo_mcts">蒙特卡洛树搜索</string>
+    <string name="ai_algo_uct">信心上界树（UCT）</string>
+    <string name="ai_algo_rave">快速行动值估计（RAVE）</string>
+    <string name="ai_algo_td_learning">TD 学习</string>
+    <string name="ai_algo_q_learning">Q 学习（强化学习）</string>
+    <string name="ai_algo_alpha_zero">AlphaZero</string>
+    <string name="ai_algo_genetic">遗传算法</string>
+    <string name="ai_algo_greedy">贪心</string>
+    <string name="ai_algo_fuzzy">模糊推理</string>
+    <string name="ai_algo_expert_system">专家系统</string>
+    <string name="ai_algo_ant_colony">蚁群算法</string>
+    <string name="ai_algo_simulated_annealing">模拟退火</string>
     <!-- 对话框与提示文案 -->
     <string name="about_message">欢迎访问源代码\nhttps://github.com/lany192/FiveChess</string>
     <string name="dialog_chat_title">对话</string>
