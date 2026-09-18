@@ -167,7 +167,7 @@
             app:cardElevation="2dp"
             app:contentPadding="10dp">
 
-            <com.github.lany192.fivechess.ui.common.GameBoardView
+            <com.github.lany192.gomoku.ui.common.GameBoardView
                 android:id="@+id/game_view"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content" />
@@ -212,7 +212,7 @@
 
             <com.google.android.material.button.MaterialButton
                 android:id="@+id/fail"
-                style="@style/Widget.FiveChess.Button.DangerOutlined"
+                style="@style/Widget.Gomoku.Button.DangerOutlined"
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
                 android:layout_marginStart="@dimen/spacing_s"

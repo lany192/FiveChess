@@ -31,6 +31,6 @@ dependencyResolutionManagement {
     }
 }
 
-rootProject.name = "FiveChess"
+rootProject.name = "Gomoku"
 include(":app")
  

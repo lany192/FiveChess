@@ -1,6 +1,6 @@
 <resources>
     <!-- 危险操作（认输）轮廓按钮 -->
-    <style name="Widget.FiveChess.Button.DangerOutlined" parent="Widget.Material3.Button.OutlinedButton">
+    <style name="Widget.Gomoku.Button.DangerOutlined" parent="Widget.Material3.Button.OutlinedButton">
         <item name="android:textColor">?attr/colorError</item>
         <item name="strokeColor">?attr/colorError</item>
     </style>

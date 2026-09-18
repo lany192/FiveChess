@@ -11,13 +11,13 @@ tasks.withType<Test>().configureEach {
 }
 
 android {
-    namespace = "com.github.lany192.fivechess"
+    namespace = "com.github.lany192.gomoku"
     compileSdk {
         version = release(37)
     }
 
     defaultConfig {
-        applicationId = "com.github.lany192.fivechess"
+        applicationId = "com.github.lany192.gomoku"
         minSdk = 24
         targetSdk = 36
         versionCode = 1
