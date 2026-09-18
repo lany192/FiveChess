@@ -1,7 +1,7 @@
 <resources>
     <string name="app_name">五子棋</string>
     <string name="app_subtitle">原木棋盘 · 墨绿对弈</string>
-    <string name="mode_desc_robot">简单 / 中等 / 困难三种难度</string>
+    <string name="mode_desc_robot">入门 / 简单 / 中等 / 困难 / 大师五种难度</string>
     <string name="mode_desc_person">同屏轮流落子</string>
     <string name="mode_desc_lan">连接同一 WiFi 的玩家</string>
     <string name="mode_desc_bt">连接附近的蓝牙设备玩家</string>
@@ -37,9 +37,11 @@
     <string name="scan_hint">搜索连接同一 WiFi 的玩家</string>
     <string name="game_player">玩家</string>
     <string name="difficulty_format">难度：%1$s</string>
+    <string name="ai_level_novice">入门</string>
     <string name="ai_level_easy">简单</string>
     <string name="ai_level_medium">中等</string>
     <string name="ai_level_hard">困难</string>
+    <string name="ai_level_master">大师</string>
     <!-- 对话框与提示文案 -->
     <string name="about_message">欢迎访问源代码\nhttps://github.com/lany192/FiveChess</string>
     <string name="dialog_chat_title">对话</string>

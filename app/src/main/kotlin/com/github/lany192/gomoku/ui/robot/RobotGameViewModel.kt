@@ -40,9 +40,7 @@ class RobotGameViewModel(
 
     init {
         engine.start(GameMode.AI, mySide = Side.BLACK)
-        val level = levelStore?.read()
-            ?.let { Difficulty.entries.getOrNull(it) }
-            ?: Difficulty.MEDIUM
+        val level = levelStore?.read() ?: Difficulty.MEDIUM
         ai.level = level
         updateState { it.copy(board = BoardRenderState.from(engine.snapshot()), aiLevel = level) }
     }
@@ -66,7 +64,7 @@ class RobotGameViewModel(
             }
             is RobotGameIntent.LevelSelected -> {
                 ai.level = intent.level
-                levelStore?.write(intent.level.ordinal)
+                levelStore?.write(intent.level)
                 updateState { it.copy(aiLevel = intent.level) }
             }
         }

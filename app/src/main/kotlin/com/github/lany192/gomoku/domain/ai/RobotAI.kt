@@ -24,23 +24,28 @@ class RobotAI(
     fun getPosition(map: Array<IntArray>): Point {
         // 复制棋盘，避免搜索过程修改调用方的棋盘
         val board = Array(width) { x -> map[x].copyOf() }
+        // 快照档位：思考途中改档不应让本次搜索读到新的候选宽度/半径
+        val config = level
 
-        val candidates = generateCandidates(board, level.breadth)
-
-        // 1.自己下一手能连五，直接取胜
-        findFivePoint(board, candidates, AI)?.let { return it }
-        // 2.对手下一手能连五，必须封堵
-        findFivePoint(board, candidates, HUMAN)?.let { return it }
-        // 3.自己能形成活四（对手堵不住），必胜
-        if (level >= Difficulty.MEDIUM) {
-            findLiveFourPoint(board, candidates, AI)?.let { return it }
+        val candidates = generateCandidates(board, config.breadth, config.radius)
+        // 低难度按概率看漏战术：没留意时连五点被剔除出候选，避免误打误撞仍封堵/取胜
+        val alert = random.nextInt(100) < config.alertPercent
+        if (alert) {
+            // 1.自己下一手能连五，直接取胜
+            findFivePoint(board, candidates, AI)?.let { return it }
+            // 2.对手下一手能连五，必须封堵
+            findFivePoint(board, candidates, HUMAN)?.let { return it }
         }
-        // 简单难度不搜索，在排名靠前的点里随机挑一个，留出失误空间
-        if (level == Difficulty.EASY) {
-            return easyMove(candidates)
+        // 3.不搜索的档位只在启发式候选里挑，不做活四检测，留出破绽；
+        //   连五点留给上面的战术判定（没留意到就一并剔除，避免误打误撞仍封堵/取胜）
+        if (config.depth == 0) {
+            val pool = candidates.filterNot { isFivePoint(board, it) }
+            return heuristicMove(pool.ifEmpty { candidates }, config)
         }
+        // 4.自己能形成活四（对手堵不住），必胜
+        findLiveFourPoint(board, candidates, AI)?.let { return it }
 
-        val best = searchRoot(board, candidates, level.depth)
+        val best = searchRoot(board, candidates, config)
         if (best != null) {
             return Point(best.x, best.y)
         }
@@ -56,7 +61,7 @@ class RobotAI(
     /**
      * 根层搜索，带Alpha-Beta窗口传递
      */
-    private fun searchRoot(board: Array<IntArray>, candidates: List<Candidate>, depth: Int): Candidate? {
+    private fun searchRoot(board: Array<IntArray>, candidates: List<Candidate>, level: Difficulty): Candidate? {
         var best: Candidate? = null
         var alpha = -WIN_SCORE * 2
         val beta = WIN_SCORE * 2
@@ -65,7 +70,7 @@ class RobotAI(
             val score = if (isFiveAt(board, c.x, c.y, AI)) {
                 WIN_SCORE
             } else {
-                search(board, depth - 1, alpha, beta, aiTurn = false, ply = 1)
+                search(board, level.depth - 1, alpha, beta, aiTurn = false, ply = 1, level = level)
             }
             board[c.x][c.y] = EMPTY
             if (best == null || score > best.score) {
@@ -91,11 +96,12 @@ class RobotAI(
         beta: Long,
         aiTurn: Boolean,
         ply: Int,
+        level: Difficulty,
     ): Long {
         if (depth <= 0) {
             return evaluate(board)
         }
-        val candidates = generateCandidates(board, level.breadth)
+        val candidates = generateCandidates(board, level.breadth, level.radius)
         if (candidates.isEmpty()) {
             return evaluate(board)
         }
@@ -109,7 +115,7 @@ class RobotAI(
                 // 落子即连五，越早赢分越高
                 if (aiTurn) WIN_SCORE - ply else -(WIN_SCORE - ply)
             } else {
-                search(board, depth - 1, a, b, !aiTurn, ply + 1)
+                search(board, depth - 1, a, b, !aiTurn, ply + 1, level)
             }
             board[c.x][c.y] = EMPTY
 
@@ -128,9 +134,8 @@ class RobotAI(
     /**
      * 生成候选点：只考虑已有棋子附近的空位，按落子后的局部棋型分排序，取前limit个
      */
-    private fun generateCandidates(board: Array<IntArray>, limit: Int): List<Candidate> {
+    private fun generateCandidates(board: Array<IntArray>, limit: Int, radius: Int): List<Candidate> {
         val list = ArrayList<Candidate>()
-        val radius = level.radius
         val centerX = width / 2
         val centerY = height / 2
         for (x in 0 until width) {
@@ -212,6 +217,18 @@ class RobotAI(
     }
 
     /**
+     * 是否是"任一方落子即连五"的点
+     */
+    private fun isFivePoint(board: Array<IntArray>, c: Candidate): Boolean {
+        board[c.x][c.y] = AI
+        val aiFive = isFiveAt(board, c.x, c.y, AI)
+        board[c.x][c.y] = HUMAN
+        val humanFive = isFiveAt(board, c.x, c.y, HUMAN)
+        board[c.x][c.y] = EMPTY
+        return aiFive || humanFive
+    }
+
+    /**
      * 寻找能形成活四的必胜点（两个连五点，对手只能堵一个）
      */
     private fun findLiveFourPoint(board: Array<IntArray>, candidates: List<Candidate>, color: Int): Point? {
@@ -229,15 +246,14 @@ class RobotAI(
     }
 
     /**
-     * 简单难度：55%最优、30%次优、15%第三优
+     * 不搜索档位的落子：候选点已按棋型分排序，按档位随机度逐级降级挑选，越往后棋型越差
      */
-    private fun easyMove(candidates: List<Candidate>): Point {
-        val r = random.nextInt(100)
-        val candidate = when {
-            candidates.size > 2 && r >= 85 -> candidates[2]
-            candidates.size > 1 && r >= 55 -> candidates[1]
-            else -> candidates[0]
+    private fun heuristicMove(candidates: List<Candidate>, level: Difficulty): Point {
+        var index = 0
+        while (index < candidates.lastIndex && random.nextInt(100) < level.noise) {
+            index++
         }
+        val candidate = candidates[index]
         return Point(candidate.x, candidate.y)
     }
 

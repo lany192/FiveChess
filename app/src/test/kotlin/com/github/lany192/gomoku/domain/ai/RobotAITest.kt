@@ -48,11 +48,55 @@ class RobotAITest {
     }
 
     @Test
-    fun `简单难度优先防守成五点`() {
+    fun `大师难度把活三走成活四`() {
+        val board = emptyBoard()
+        for (x in 5..7) board[x][7] = 2
+        board[10][10] = 1
+        val point = RobotAI(15, 15, Difficulty.MASTER).getPosition(board)
+        assertTrue("实际落点 ($point)", point == Point(4, 7) || point == Point(8, 7))
+    }
+
+    @Test
+    fun `中等以上难度必堵对手连五`() {
         val board = emptyBoard()
         for (x in 5..8) board[x][7] = 1
-        val point = RobotAI(15, 15, Difficulty.EASY).getPosition(board)
-        assertTrue("实际落点 ($point)", point == Point(4, 7) || point == Point(9, 7))
+        for (level in listOf(Difficulty.MEDIUM, Difficulty.HARD, Difficulty.MASTER)) {
+            val point = RobotAI(15, 15, level).getPosition(board)
+            assertTrue("$level 实际落点 ($point)", point == Point(4, 7) || point == Point(9, 7))
+        }
+    }
+
+    @Test
+    fun `低难度会漏堵连五且入门比简单更常漏`() {
+        val board = emptyBoard()
+        for (x in 5..8) board[x][7] = 1
+        val novice = blockTimes(board, Difficulty.NOVICE, 100)
+        val easy = blockTimes(board, Difficulty.EASY, 100)
+        assertTrue("入门封堵 $novice/100 次，未体现难度", novice in 1..99)
+        assertTrue("简单封堵 $easy/100 次，未体现难度", easy in 1..99)
+        assertTrue("入门($novice) 应比简单($easy) 更常漏堵", novice < easy)
+    }
+
+    @Test
+    fun `入门难度会放过自己的连五`() {
+        val board = emptyBoard()
+        for (x in 5..8) board[x][7] = 2
+        var missed = 0
+        repeat(100) { i ->
+            val point = RobotAI(15, 15, Difficulty.NOVICE, Random(2000 + i)).getPosition(board)
+            if (point != Point(4, 7) && point != Point(9, 7)) missed++
+        }
+        assertTrue("100 次全部取胜，未体现入门难度", missed > 0)
+    }
+
+    /** 同一局面重复 n 次，统计封堵对方连五的次数 */
+    private fun blockTimes(board: Array<IntArray>, level: Difficulty, n: Int): Int {
+        var blocks = 0
+        repeat(n) { i ->
+            val point = RobotAI(15, 15, level, Random(100 + i)).getPosition(board)
+            if (point == Point(4, 7) || point == Point(9, 7)) blocks++
+        }
+        return blocks
     }
 
     @Test
@@ -72,15 +116,20 @@ class RobotAITest {
         assertTrue(point.x in 0 until 15 && point.y in 0 until 15)
     }
 
-    @Test
-    fun `困难深度4中局冒烟测试`() {
+    /** 约12子的中局局面 */
+    private fun midGameBoard(): Array<IntArray> {
         val board = emptyBoard()
-        // 构造一个约12子的中局局面
         val stones = listOf(
             7 to 7 to 1, 8 to 8 to 2, 7 to 8 to 1, 6 to 8 to 2, 8 to 7 to 1, 9 to 7 to 2,
             6 to 6 to 1, 5 to 5 to 2, 8 to 6 to 1, 9 to 5 to 2, 5 to 8 to 1, 4 to 9 to 2,
         )
         stones.forEach { (pos, side) -> board[pos.first][pos.second] = side }
+        return board
+    }
+
+    @Test
+    fun `困难深度4中局冒烟测试`() {
+        val board = midGameBoard()
 
         val start = System.nanoTime()
         val point = RobotAI(15, 15, Difficulty.HARD).getPosition(board)
@@ -88,6 +137,18 @@ class RobotAITest {
 
         assertTrue("实际落点 ($point)", board[point.x][point.y] == 0)
         assertTrue("耗时 ${elapsedMs}ms 超出预期", elapsedMs < 10_000)
+    }
+
+    @Test
+    fun `大师深度6中局冒烟测试`() {
+        val board = midGameBoard()
+
+        val start = System.nanoTime()
+        val point = RobotAI(15, 15, Difficulty.MASTER).getPosition(board)
+        val elapsedMs = (System.nanoTime() - start) / 1_000_000
+
+        assertTrue("实际落点 ($point)", board[point.x][point.y] == 0)
+        assertTrue("耗时 ${elapsedMs}ms 超出预期", elapsedMs < 5_000)
     }
 
     @Test

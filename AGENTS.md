@@ -4,7 +4,7 @@
 
 ## 项目
 
-Android 五子棋应用，单 `app` 模块，100% Kotlin。手写 MVI（无 MVI 框架、无 DI），View 体系 + ViewBinding（无 Compose）。四种对局模式：本地双人（`ui/person`）、人机三档难度（`ui/robot`，引擎在 `domain/ai/RobotAI.kt`）、局域网 WiFi 联机（`ui/connect`）、蓝牙联机（`ui/bt`）。两种联机模式的对局页与对局逻辑共用 `ui/net`，差别只在建连层。
+Android 五子棋应用，单 `app` 模块，100% Kotlin。手写 MVI（无 MVI 框架、无 DI），View 体系 + ViewBinding（无 Compose）。四种对局模式：本地双人（`ui/person`）、人机五档难度（`ui/robot`，引擎在 `domain/ai/RobotAI.kt`）、局域网 WiFi 联机（`ui/connect`）、蓝牙联机（`ui/bt`）。两种联机模式的对局页与对局逻辑共用 `ui/net`，差别只在建连层。
 
 ## 构建
 
@@ -18,7 +18,7 @@ Android 五子棋应用，单 `app` 模块，100% Kotlin。手写 MVI（无 MVI 
 
 分层依赖，外层可依赖内层，禁止反向：
 
-- `domain/` —— 纯 Kotlin，**禁止 `android.*` 导入**（这是保持 JVM 可测的前提）。`engine/GameEngine` 掌管规则并返回 `EngineResult(state, events)`；`model/` 持有不可变快照（`GameState`、`Side`，其中 BLACK=1/WHITE=2，与 AI 的 `Array<IntArray>` 编码一致）；`ai/RobotAI` + `ai/Difficulty`（EASY/MEDIUM/HARD）。
+- `domain/` —— 纯 Kotlin，**禁止 `android.*` 导入**（这是保持 JVM 可测的前提）。`engine/GameEngine` 掌管规则并返回 `EngineResult(state, events)`；`model/` 持有不可变快照（`GameState`、`Side`，其中 BLACK=1/WHITE=2，与 AI 的 `Array<IntArray>` 编码一致）；`ai/RobotAI` + `ai/Difficulty`（NOVICE/EASY/MEDIUM/HARD/MASTER 五档：`depth=0` 的档位不搜索、只按启发式选点，且会按 `alertPercent` 概率看漏连五战术）。
 - `core/mvi/MviViewModel` —— 基类：Intent 经无限容量 `Channel` 串行处理（对齐旧 Handler 主线程队列语义）；State 是 `StateFlow`，渲染须幂等；Effect 是 `SharedFlow(replay=0)`，承载一次性 toast/弹窗/导航。每个特性在 `ui/<feature>/` 下含 `<Feature>Contract.kt`（Intent/State/Effect）、`<Feature>ViewModel.kt`、`<Feature>Activity.kt`。例外是 `ui/net/`：联机对局页与对局 ViewModel 由局域网和蓝牙共用，不是单一特性。
 - `data/net/` —— `Protocol.kt`（字节级编解码 + `TcpFrameReader`）、`LanDiscoveryManager`（UDP 发现/握手/聊天）、`LanGameClient`（TCP 对局）、`GameTransport`（对局传输抽象，`ui/net` 唯一依赖的建连接口）。阻塞式 `DatagramSocket.receive()` / `Socket.read()` 不响应协程取消 —— 须先关闭 socket 再取消 scope 来停止。
 - `data/bt/` —— `BtDiscoveryManager`（已配对列表 + 系统发现广播 + RFCOMM 握手）、`BtGameClient`（RFCOMM 对局，实现 `GameTransport`）。`accept()`/`read()` 同样靠关闭 socket 打断。`BtDiscoveryManager` 是一次性的：`stop()` 会取消 scope，不可复用。

@@ -89,9 +89,11 @@ class RobotGameActivity : AppCompatActivity() {
 
     private fun levelName(level: Difficulty): String = getString(
         when (level) {
+            Difficulty.NOVICE -> R.string.ai_level_novice
             Difficulty.EASY -> R.string.ai_level_easy
             Difficulty.MEDIUM -> R.string.ai_level_medium
             Difficulty.HARD -> R.string.ai_level_hard
+            Difficulty.MASTER -> R.string.ai_level_master
         }
     )
 

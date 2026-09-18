@@ -26,13 +26,28 @@ android {
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
 
+    signingConfigs {
+        create("release") {
+            storeFile = file("test.jks")
+            storePassword = "dev123456"
+            keyAlias = "test"
+            keyPassword = "dev123456"
+        }
+    }
+
     buildTypes {
+        debug {
+            // 与 release 共用同一签名，避免换签后覆盖安装失败
+            signingConfig = signingConfigs.getByName("release")
+        }
         release {
-            isMinifyEnabled = false
+            isMinifyEnabled = true
+            isShrinkResources = true
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"
             )
+            signingConfig = signingConfigs.getByName("release")
         }
     }
     compileOptions {
