@@ -72,6 +72,10 @@ class NetGameActivity : AppCompatActivity() {
         setContentView(binding.root)
         setupEdgeToEdge(binding.root)
         countdownNormalColor = binding.countdown.currentTextColor
+        // 两种联机共用本页，标题按传输层区分
+        binding.toolbar.setTitle(
+            if (extras.getBoolean(EXTRA_BLUETOOTH)) R.string.fight_bluetooth else R.string.fight_connection
+        )
         binding.toolbar.setNavigationOnClickListener { finish() }
         val isServer = extras.getBoolean(EXTRA_IS_SERVER)
         binding.blackName.setText(if (isServer) R.string.myself else R.string.challenger)
@@ -108,7 +112,7 @@ class NetGameActivity : AppCompatActivity() {
                             NetGameEffect.ShowDrawRequest -> showDrawRequestDialog()
                             NetGameEffect.ShowResignConfirm -> showResignConfirmDialog()
                             is NetGameEffect.ShowMessage -> Toast.makeText(
-                                this@NetGameActivity, effect.text, Toast.LENGTH_SHORT,
+                                this@NetGameActivity, effect.resId, Toast.LENGTH_SHORT,
                             ).show()
                             NetGameEffect.Exit -> finish()
                         }

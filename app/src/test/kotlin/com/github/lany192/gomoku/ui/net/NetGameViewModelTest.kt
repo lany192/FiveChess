@@ -3,6 +3,7 @@ package com.github.lany192.gomoku.ui.net
 import com.github.lany192.gomoku.data.net.GameTransport
 import com.github.lany192.gomoku.data.net.NetEvent
 import com.github.lany192.gomoku.data.net.TcpType
+import com.github.lany192.gomoku.domain.engine.GameEngine
 import com.github.lany192.gomoku.domain.model.GameMode
 import com.github.lany192.gomoku.domain.model.Side
 import com.github.lany192.gomoku.ui.common.TurnCountdown
@@ -175,15 +176,7 @@ class NetGameViewModelTest {
         val transport = FakeTransport()
         val vm = startVm(transport, Side.BLACK)
 
-        // 黑方连下 0..4 列，白方在另一行应付
-        repeat(4) { i ->
-            vm.dispatch(NetGameIntent.BoardTap(i, 0))
-            advanceUntilIdle()
-            transport.emit(NetEvent.ChessMove(i, 1))
-            advanceUntilIdle()
-        }
-        vm.dispatch(NetGameIntent.BoardTap(4, 0))
-        advanceUntilIdle()
+        playBlackWin(vm, transport)
 
         assertEquals(NetGameEnd.Win(Side.BLACK), vm.state.value.end)
         assertEquals(1, vm.state.value.blackWins)
@@ -273,6 +266,198 @@ class NetGameViewModelTest {
         assertEquals(Side.BLACK, vm.state.value.board.cells[0][0])
     }
 
+    // ---------- 满盘和棋 ----------
+
+    @Test
+    fun `满盘和棋由对端最后一手判定`() = runTest(dispatcher) {
+        val transport = FakeTransport()
+        // 2×2 棋盘：黑(我) 白 黑 白，铺满即和棋
+        val vm = startVm(transport, Side.BLACK, engine = GameEngine(2, 2))
+
+        vm.dispatch(NetGameIntent.BoardTap(0, 0))
+        advanceUntilIdle()
+        transport.emit(NetEvent.ChessMove(1, 0))
+        advanceUntilIdle()
+        vm.dispatch(NetGameIntent.BoardTap(0, 1))
+        advanceUntilIdle()
+        transport.emit(NetEvent.ChessMove(1, 1))
+        advanceUntilIdle()
+
+        assertEquals(NetGameEnd.Draw, vm.state.value.end)
+        assertEquals(0, vm.state.value.blackWins)
+        assertEquals(0, vm.state.value.whiteWins)
+        // 第 225 手照常走 ADD_CHESS，不引入新的消息类型
+        assertEquals(2, transport.sent.size)
+        assertTrue(transport.sent.all { it == TcpType.ADD_CHESS })
+    }
+
+    @Test
+    fun `满盘和棋由本方最后一手判定`() = runTest(dispatcher) {
+        val transport = FakeTransport()
+        // 3×1 棋盘：黑(我) 白 黑，本方落最后一手
+        val vm = startVm(transport, Side.BLACK, engine = GameEngine(3, 1))
+
+        vm.dispatch(NetGameIntent.BoardTap(0, 0))
+        advanceUntilIdle()
+        transport.emit(NetEvent.ChessMove(1, 0))
+        advanceUntilIdle()
+        vm.dispatch(NetGameIntent.BoardTap(2, 0))
+        advanceUntilIdle()
+
+        assertEquals(NetGameEnd.Draw, vm.state.value.end)
+        assertEquals(2, transport.moves.size)
+        assertEquals(TcpType.ADD_CHESS, transport.lastSent)
+    }
+
+    @Test
+    fun `满盘和棋后落子与协商一律被拦`() = runTest(dispatcher) {
+        val transport = FakeTransport()
+        val vm = startVm(transport, Side.BLACK, engine = GameEngine(2, 2))
+        vm.dispatch(NetGameIntent.BoardTap(0, 0))
+        advanceUntilIdle()
+        transport.emit(NetEvent.ChessMove(1, 0))
+        advanceUntilIdle()
+        vm.dispatch(NetGameIntent.BoardTap(0, 1))
+        advanceUntilIdle()
+        transport.emit(NetEvent.ChessMove(1, 1))
+        advanceUntilIdle()
+        val sentBefore = transport.sent.size
+
+        vm.dispatch(NetGameIntent.BoardTap(1, 1))
+        vm.dispatch(NetGameIntent.DrawClicked)
+        advanceUntilIdle()
+
+        assertEquals(sentBefore, transport.sent.size)
+        assertEquals(NetGameEnd.Draw, vm.state.value.end)
+    }
+
+    // ---------- 终局回执（D3） ----------
+
+    @Test
+    fun `五连终局后不再发起悔棋`() = runTest(dispatcher) {
+        val transport = FakeTransport()
+        val vm = startVm(transport, Side.BLACK)
+        playBlackWin(vm, transport)
+        val sentBefore = transport.sent.size
+
+        vm.dispatch(NetGameIntent.RollbackClicked)
+        advanceUntilIdle()
+
+        assertEquals(sentBefore, transport.sent.size)
+        assertEquals(NetGameEnd.Win(Side.BLACK), vm.state.value.end)
+    }
+
+    @Test
+    fun `五连终局后收到悔棋请求回绝而非静默丢弃`() = runTest(dispatcher) {
+        val transport = FakeTransport()
+        val vm = startVm(transport, Side.BLACK)
+        playBlackWin(vm, transport)
+
+        transport.emit(NetEvent.RollbackAsked)
+        advanceUntilIdle()
+
+        assertEquals(TcpType.ROLLBACK_REJECT, transport.lastSent)
+        assertEquals(NetGameEnd.Win(Side.BLACK), vm.state.value.end)
+    }
+
+    @Test
+    fun `五连终局后收到求和请求回绝`() = runTest(dispatcher) {
+        val transport = FakeTransport()
+        val vm = startVm(transport, Side.BLACK)
+        playBlackWin(vm, transport)
+
+        transport.emit(NetEvent.DrawAsked)
+        advanceUntilIdle()
+
+        assertEquals(TcpType.DRAW_REJECT, transport.lastSent)
+        assertEquals(NetGameEnd.Win(Side.BLACK), vm.state.value.end)
+    }
+
+    @Test
+    fun `本方等待悔棋回应时对方请求立即回绝`() = runTest(dispatcher) {
+        val transport = FakeTransport()
+        val vm = startVm(transport, Side.BLACK)
+        vm.dispatch(NetGameIntent.BoardTap(0, 0))
+        advanceUntilIdle()
+
+        // 本方发起悔棋后等待回应；此时对端也发来悔棋请求（此前会被静默丢弃，请求方永久悬挂）
+        vm.dispatch(NetGameIntent.RollbackClicked)
+        advanceUntilIdle()
+        assertEquals(TcpType.ROLLBACK_ASK, transport.lastSent)
+
+        transport.emit(NetEvent.RollbackAsked)
+        advanceUntilIdle()
+
+        assertEquals(TcpType.ROLLBACK_REJECT, transport.lastSent)
+    }
+
+    @Test
+    fun `求和弹窗挂着时对方再求和立即回绝`() = runTest(dispatcher) {
+        val transport = FakeTransport()
+        val vm = startVm(transport, Side.BLACK)
+        vm.dispatch(NetGameIntent.BoardTap(0, 0))
+        advanceUntilIdle()
+
+        transport.emit(NetEvent.DrawAsked)
+        advanceUntilIdle()
+        transport.emit(NetEvent.DrawAsked)
+        advanceUntilIdle()
+
+        assertEquals(TcpType.DRAW_REJECT, transport.lastSent)
+    }
+
+    @Test
+    fun `五连终局后重开可继续落子`() = runTest(dispatcher) {
+        val transport = FakeTransport()
+        val vm = startVm(transport, Side.BLACK)
+        playBlackWin(vm, transport)
+        assertEquals(NetGameEnd.Win(Side.BLACK), vm.state.value.end)
+
+        transport.emit(NetEvent.RestartRequested)
+        advanceUntilIdle()
+
+        assertNull(vm.state.value.end)
+        vm.dispatch(NetGameIntent.BoardTap(7, 7))
+        advanceUntilIdle()
+        assertEquals(Side.BLACK, vm.state.value.board.cells[7][7])
+        assertEquals(TcpType.ADD_CHESS, transport.lastSent)
+    }
+
+    @Test
+    fun `在途悔棋同意到达后终局标志复位`() = runTest(dispatcher) {
+        val transport = FakeTransport()
+        val vm = startVm(transport, Side.BLACK)
+        vm.dispatch(NetGameIntent.BoardTap(0, 0))
+        advanceUntilIdle()
+        transport.emit(NetEvent.ChessMove(1, 0))
+        advanceUntilIdle()
+        vm.dispatch(NetGameIntent.BoardTap(2, 0))
+        advanceUntilIdle()
+
+        vm.dispatch(NetGameIntent.RollbackClicked)
+        advanceUntilIdle()
+        assertEquals(TcpType.ROLLBACK_ASK, transport.lastSent)
+
+        // 对端宣告超时（本方获胜），随后它在上一步之前发出的"同意悔棋"才到达
+        transport.emit(NetEvent.TimedOut)
+        advanceUntilIdle()
+        assertEquals(NetGameEnd.Timeout(Side.BLACK), vm.state.value.end)
+
+        transport.emit(NetEvent.RollbackAgreed)
+        advanceUntilIdle()
+
+        // 对端已按同一份落子历史回退，本方必须跟随；棋局复活后可继续落子
+        assertNull(vm.state.value.board.cells[2][0])
+        assertNull(vm.state.value.end)
+        assertEquals(Side.WHITE, vm.state.value.board.cells[1][0])
+        vm.dispatch(NetGameIntent.BoardTap(3, 0))
+        advanceUntilIdle()
+        assertEquals(Side.BLACK, vm.state.value.board.cells[3][0])
+        assertEquals(TcpType.ADD_CHESS, transport.lastSent)
+        // 比分不回收：终局结算过的一胜仍然留在记分牌上（见 DEMAND §9.4）
+        assertEquals(1, vm.state.value.blackWins)
+    }
+
     /**
      * 建 VM 并等它订阅上事件流后再投递 Connected
      *
@@ -286,11 +471,13 @@ class NetGameViewModelTest {
         transport: FakeTransport,
         mySide: Side,
         turnMillis: Long = 0,
+        engine: GameEngine = GameEngine(),
     ): NetGameViewModel {
         val vm = NetGameViewModel(
             mode = GameMode.BLUETOOTH,
             mySide = mySide,
             transport = transport,
+            engine = engine,
             turnDurationMillis = turnMillis,
         )
         advanceUntilIdle()
@@ -299,6 +486,18 @@ class NetGameViewModelTest {
             advanceUntilIdle()
         }
         return vm
+    }
+
+    /** 黑方（本方）连下 0..4 列成五连，白方在另一行应付 */
+    private suspend fun TestScope.playBlackWin(vm: NetGameViewModel, transport: FakeTransport) {
+        repeat(4) { i ->
+            vm.dispatch(NetGameIntent.BoardTap(i, 0))
+            advanceUntilIdle()
+            transport.emit(NetEvent.ChessMove(i, 1))
+            advanceUntilIdle()
+        }
+        vm.dispatch(NetGameIntent.BoardTap(4, 0))
+        advanceUntilIdle()
     }
 
     /** 传输桩：记录发出的指令，并允许测试从"对端"注入事件 */

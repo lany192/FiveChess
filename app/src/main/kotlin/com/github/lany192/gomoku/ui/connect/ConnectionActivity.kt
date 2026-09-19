@@ -3,6 +3,7 @@ package com.github.lany192.gomoku.ui.connect
 import android.content.Context
 import android.net.wifi.WifiManager
 import android.os.Bundle
+import android.view.inputmethod.EditorInfo
 import android.widget.Toast
 import androidx.activity.viewModels
 import androidx.appcompat.app.AlertDialog
@@ -31,6 +32,7 @@ class ConnectionActivity : AppCompatActivity() {
     private var handshakeDialog: AlertDialog? = null
     private var waitDialog: AlertDialog? = null
     private var chatDialog: AlertDialog? = null
+    private var chatBinding: ChatDialogBinding? = null
 
     private val viewModel: ConnectViewModel by viewModels {
         viewModelFactory {
@@ -76,7 +78,7 @@ class ConnectionActivity : AppCompatActivity() {
                                 this@ConnectionActivity, effect.isServer, effect.ip,
                             )
                             is ConnectEffect.ShowMessage -> Toast.makeText(
-                                this@ConnectionActivity, effect.text, Toast.LENGTH_LONG,
+                                this@ConnectionActivity, effect.resId, Toast.LENGTH_LONG,
                             ).show()
                             is ConnectEffect.ShowChat -> showChatDialog(effect.messages)
                         }
@@ -119,12 +121,30 @@ class ConnectionActivity : AppCompatActivity() {
             val dialogBinding = ChatDialogBinding.inflate(layoutInflater)
             dialogBinding.listChat.layoutManager = LinearLayoutManager(this)
             dialogBinding.listChat.adapter = chatAdapter
+            dialogBinding.btnSend.setOnClickListener { sendChatMessage() }
+            // 软键盘的回车键也直接发送，省去按键切换
+            dialogBinding.editChat.setOnEditorActionListener { _, actionId, _ ->
+                if (actionId == EditorInfo.IME_ACTION_SEND) {
+                    sendChatMessage()
+                    true
+                } else {
+                    false
+                }
+            }
+            chatBinding = dialogBinding
             chatDialog = MaterialAlertDialogBuilder(this)
                 .setTitle(R.string.dialog_chat_title)
                 .setView(dialogBinding.root)
                 .create()
         }
         if (chatDialog?.isShowing != true) chatDialog?.show()
+    }
+
+    private fun sendChatMessage() {
+        val text = chatBinding?.editChat?.text?.toString()?.trim().orEmpty()
+        if (text.isEmpty()) return
+        viewModel.dispatch(ConnectIntent.SendChat(text))
+        chatBinding?.editChat?.text = null
     }
 
     private fun localIpAddress(): String {

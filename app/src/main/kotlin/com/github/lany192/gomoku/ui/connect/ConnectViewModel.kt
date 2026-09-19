@@ -1,14 +1,17 @@
 package com.github.lany192.gomoku.ui.connect
 
 import androidx.lifecycle.viewModelScope
+import com.github.lany192.gomoku.R
 import com.github.lany192.gomoku.core.mvi.MviViewModel
 import com.github.lany192.gomoku.data.net.ChatContent
 import com.github.lany192.gomoku.data.net.ConnectionItem
 import com.github.lany192.gomoku.data.net.DiscoveryEvent
 import com.github.lany192.gomoku.data.net.LanDiscoveryManager
-import com.github.lany192.gomoku.ui.common.describe
+import com.github.lany192.gomoku.data.net.Protocol
+import com.github.lany192.gomoku.ui.common.messageRes
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 
 class ConnectViewModel(
@@ -23,21 +26,41 @@ class ConnectViewModel(
     private var handshakeDialogShowing = false
     private var incomingIp: String? = null
 
+    /** 最近一次收到聊天的对端 IP：发送目标（联机页没有"当前会话"概念，按最近来信回复） */
+    private var lastChatIp: String? = null
+
+    /**
+     * 各设备最近一次被播报的时间，用于淘汰崩溃后残留的离线设备
+     *
+     * 时间戳刻意不放进 State：ConnectionItem.equals 只比 IP，而 MutableStateFlow 对等值更新
+     * 会「相等即短路、不落值」，放在状态里会被静默吞掉；且它变化时也不该触发列表重刷。
+     */
+    private val peerSeen = mutableMapOf<String, Long>()
+
     init {
         viewModelScope.launch {
             discovery.events.collect(::onDiscoveryEvent)
         }
         discovery.start()
         discovery.sendScanBroadcast()
+        // 周期重播 JOIN：在线设备会应答刷新，同时让 30 秒未再出现的设备被淘汰
+        viewModelScope.launch {
+            while (isActive) {
+                delay(PEER_REFRESH_INTERVAL_MS)
+                discovery.sendScanBroadcast()
+                sweepStalePeers()
+            }
+        }
     }
 
     override fun onIntent(intent: ConnectIntent) {
         when (intent) {
             ConnectIntent.ScanClicked -> {
                 // 清掉可能已离线的残留 peer，依赖广播应答重建列表
+                peerSeen.clear()
                 updateState { it.copy(peers = emptyList()) }
                 discovery.sendScanBroadcast()
-                viewModelScope.launch { emitEffect(ConnectEffect.ShowMessage(SCANNING_TEXT)) }
+                viewModelScope.launch { emitEffect(ConnectEffect.ShowMessage(R.string.msg_scanning)) }
             }
             is ConnectIntent.PeerClicked -> {
                 if (awaitingAgree || handshakeDialogShowing) return
@@ -50,7 +73,7 @@ class ConnectViewModel(
                     if (awaitingAgree && pendingIp == intent.ip) {
                         resetPending()
                         emitEffect(ConnectEffect.DismissConnecting)
-                        emitEffect(ConnectEffect.ShowMessage("对方无响应，请稍后再试"))
+                        emitEffect(ConnectEffect.ShowMessage(R.string.msg_peer_no_response))
                     }
                 }
             }
@@ -71,7 +94,18 @@ class ConnectViewModel(
                 incomingIp = null
                 discovery.reject(intent.ip)
             }
+            is ConnectIntent.SendChat -> sendChat(intent.content)
         }
+    }
+
+    /** 发送聊天：回复最近来信的对端；本地立即回显（对端不会把消息发回来） */
+    private fun sendChat(content: String) {
+        val target = lastChatIp ?: return
+        val text = Protocol.clampUtf8(content.trim())
+        if (text.isEmpty()) return
+        discovery.sendChat(text, target)
+        chats.add(ChatContent(localIp, text, self = true))
+        viewModelScope.launch { emitEffect(ConnectEffect.ShowChat(chats.toList())) }
     }
 
     private fun onDiscoveryEvent(event: DiscoveryEvent) {
@@ -93,15 +127,16 @@ class ConnectViewModel(
                 resetPending()
                 viewModelScope.launch {
                     emitEffect(ConnectEffect.DismissConnecting)
-                    emitEffect(ConnectEffect.ShowMessage("对方拒绝了你的请求"))
+                    emitEffect(ConnectEffect.ShowMessage(R.string.msg_request_rejected))
                 }
             }
             is DiscoveryEvent.ChatReceived -> {
+                lastChatIp = event.from.ip
                 chats.add(ChatContent(event.from.name + "(" + event.from.ip + ")", event.content))
                 viewModelScope.launch { emitEffect(ConnectEffect.ShowChat(chats.toList())) }
             }
             is DiscoveryEvent.Error -> viewModelScope.launch {
-                emitEffect(ConnectEffect.ShowMessage(event.kind.describe()))
+                emitEffect(ConnectEffect.ShowMessage(event.kind.messageRes()))
             }
         }
     }
@@ -132,12 +167,12 @@ class ConnectViewModel(
     }
 
     private fun addPeer(item: ConnectionItem) {
-        updateState { state ->
-            state.copy(peers = state.peers.filterNot { it.ip == item.ip } + item)
-        }
+        peerSeen[item.ip] = System.currentTimeMillis()
+        updateState { state -> state.copy(peers = mergePeer(state.peers, item)) }
     }
 
     private fun removePeer(ip: String) {
+        peerSeen.remove(ip)
         updateState { state ->
             state.copy(peers = state.peers.filterNot { it.ip == ip })
         }
@@ -145,7 +180,7 @@ class ConnectViewModel(
             resetPending()
             viewModelScope.launch {
                 emitEffect(ConnectEffect.DismissConnecting)
-                emitEffect(ConnectEffect.ShowMessage("对方已退出"))
+                emitEffect(ConnectEffect.ShowMessage(R.string.msg_peer_exited))
             }
         }
         if (handshakeDialogShowing && incomingIp == ip) {
@@ -153,9 +188,18 @@ class ConnectViewModel(
             incomingIp = null
             viewModelScope.launch {
                 emitEffect(ConnectEffect.DismissHandshake)
-                emitEffect(ConnectEffect.ShowMessage("对方已退出"))
+                emitEffect(ConnectEffect.ShowMessage(R.string.msg_peer_exited))
             }
         }
+    }
+
+    /** 淘汰超过 TTL 未再被播报的设备（对端崩溃/掉线不会发 EXIT，只能靠刷新缺失识别） */
+    private fun sweepStalePeers() {
+        val now = System.currentTimeMillis()
+        val stale = stalePeers(peers = state.value.peers, lastSeen = peerSeen, now = now, ttlMillis = PEER_TTL_MS)
+        if (stale.isEmpty()) return
+        stale.forEach { peerSeen.remove(it) }
+        updateState { state -> state.copy(peers = state.peers.filterNot { it.ip in stale }) }
     }
 
     private fun resetPending() {
@@ -172,7 +216,12 @@ class ConnectViewModel(
     }
 
     private companion object {
-        const val SCANNING_TEXT = "扫描中，请稍后......"
         const val AGREE_TIMEOUT_MS = 10_000L
+
+        /** JOIN 重播周期：在线设备借此刷新，离线设备因不再刷新而被淘汰 */
+        const val PEER_REFRESH_INTERVAL_MS = 10_000L
+
+        /** 超过该时长未再被播报即视为离线残留（约 3 个重播周期） */
+        const val PEER_TTL_MS = 30_000L
     }
 }

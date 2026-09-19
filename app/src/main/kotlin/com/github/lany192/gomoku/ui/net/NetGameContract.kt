@@ -1,5 +1,6 @@
 package com.github.lany192.gomoku.ui.net
 
+import androidx.annotation.StringRes
 import com.github.lany192.gomoku.domain.model.Side
 import com.github.lany192.gomoku.ui.common.BoardRenderState
 
@@ -48,6 +49,7 @@ sealed interface NetGameEffect {
     data object ShowRollbackRequest : NetGameEffect
     data object ShowDrawRequest : NetGameEffect
     data object ShowResignConfirm : NetGameEffect
-    data class ShowMessage(val text: String) : NetGameEffect
+    /** 一次性提示，文案由资源层提供（ViewModel 无 Context） */
+    data class ShowMessage(@StringRes val resId: Int) : NetGameEffect
     data object Exit : NetGameEffect
 }

@@ -11,6 +11,9 @@ sealed interface GameEvent {
     /** 超时判负：无五连，故 [GameOver] 的 line 语义不适用，单列一类事件 */
     data class Timeout(val loser: Side, val winner: Side) : GameEvent
 
+    /** 满盘和棋：最后一手落满棋盘且未成五连（五连优先：若同时成五，上方 [GameOver] 分支先返回） */
+    data object Draw : GameEvent
+
     data class IllegalMove(val x: Int, val y: Int, val reason: Reason) : GameEvent {
         enum class Reason { OUT_OF_BOUNDS, OCCUPIED, NOT_YOUR_TURN, GAME_OVER }
     }

@@ -1,5 +1,6 @@
 package com.github.lany192.gomoku.ui.connect
 
+import androidx.annotation.StringRes
 import com.github.lany192.gomoku.data.net.ChatContent
 import com.github.lany192.gomoku.data.net.ConnectionItem
 
@@ -9,6 +10,9 @@ sealed interface ConnectIntent {
     data object ConnectCancelled : ConnectIntent
     data class HandshakeAgreed(val ip: String) : ConnectIntent
     data class HandshakeRejected(val ip: String) : ConnectIntent
+
+    /** 发送聊天内容（回复目标为最近一条收到的消息的对端） */
+    data class SendChat(val content: String) : ConnectIntent
 }
 
 data class ConnectState(
@@ -21,6 +25,7 @@ sealed interface ConnectEffect {
     data class ShowConnecting(val ip: String) : ConnectEffect
     data object DismissConnecting : ConnectEffect
     data class NavigateToGame(val isServer: Boolean, val ip: String) : ConnectEffect
-    data class ShowMessage(val text: String) : ConnectEffect
+    /** 一次性提示，文案由资源层提供（ViewModel 无 Context） */
+    data class ShowMessage(@StringRes val resId: Int) : ConnectEffect
     data class ShowChat(val messages: List<ChatContent>) : ConnectEffect
 }

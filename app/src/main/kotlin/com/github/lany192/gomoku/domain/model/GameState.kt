@@ -15,6 +15,8 @@ data class GameState(
     val active: Side = Side.BLACK,
     val winner: Side? = null,
     val over: Boolean = false,
+    /** 满盘和棋终局（[over] 为 true 且 [winner] 为 null）；悔棋/重开解除终局时随之复位 */
+    val drawn: Boolean = false,
     /** 本端操控的一方；null 表示本地双人（双方都可操作） */
     val mySide: Side? = null,
 ) {

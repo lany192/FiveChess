@@ -1,5 +1,6 @@
 package com.github.lany192.gomoku.ui.person
 
+import com.github.lany192.gomoku.domain.engine.GameEngine
 import com.github.lany192.gomoku.domain.model.Side
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -116,5 +117,56 @@ class PersonGameViewModelTest {
         // 让表自然归零终止，否则 runTest 收尾排空队列时会挂死整个测试任务
         advanceUntilIdle()
         assertEquals(Side.WHITE, vm.state.value.winner)
+    }
+
+    // ---------- 满盘和棋 ----------
+
+    @Test(timeout = 10_000)
+    fun `满盘无五连判和棋且不加胜场`() = runTest(dispatcher) {
+        // 3×1 棋盘：黑 白 黑，铺满即和棋
+        val vm = PersonGameViewModel(engine = GameEngine(3, 1), turnDurationMillis = 0)
+        vm.dispatch(PersonGameIntent.BoardTap(0, 0))
+        vm.dispatch(PersonGameIntent.BoardTap(1, 0))
+        vm.dispatch(PersonGameIntent.BoardTap(2, 0))
+        advanceUntilIdle()
+
+        assertTrue(vm.state.value.drawn)
+        assertNull(vm.state.value.winner)
+        assertFalse(vm.state.value.timedOut)
+        assertEquals(0, vm.state.value.blackWins)
+        assertEquals(0, vm.state.value.whiteWins)
+        assertEquals(0, vm.state.value.board.winLine.size)
+    }
+
+    @Test(timeout = 10_000)
+    fun `和棋后落子被拒`() = runTest(dispatcher) {
+        val vm = PersonGameViewModel(engine = GameEngine(3, 1), turnDurationMillis = 0)
+        vm.dispatch(PersonGameIntent.BoardTap(0, 0))
+        vm.dispatch(PersonGameIntent.BoardTap(1, 0))
+        vm.dispatch(PersonGameIntent.BoardTap(2, 0))
+        advanceUntilIdle()
+
+        // 铺满后已无空点，落在已有子上仍须被拒（引擎按 GAME_OVER 优先拦截）
+        vm.dispatch(PersonGameIntent.BoardTap(0, 0))
+        advanceUntilIdle()
+
+        assertEquals(Side.BLACK, vm.state.value.board.cells[0][0])
+        assertTrue(vm.state.value.drawn)
+    }
+
+    @Test(timeout = 10_000)
+    fun `悔棋解除和棋`() = runTest(dispatcher) {
+        val vm = PersonGameViewModel(engine = GameEngine(3, 1), turnDurationMillis = 0)
+        vm.dispatch(PersonGameIntent.BoardTap(0, 0))
+        vm.dispatch(PersonGameIntent.BoardTap(1, 0))
+        vm.dispatch(PersonGameIntent.BoardTap(2, 0))
+        advanceUntilIdle()
+        assertTrue(vm.state.value.drawn)
+
+        vm.dispatch(PersonGameIntent.RollbackClicked)
+        advanceUntilIdle()
+
+        assertFalse(vm.state.value.drawn)
+        assertNull(vm.state.value.board.cells[2][0])
     }
 }

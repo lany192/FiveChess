@@ -261,4 +261,88 @@ class GameEngineTest {
         assertNull(result.state.winner)
         assertEquals(Side.BLACK, result.state.active)
     }
+
+    // ---------- 满盘和棋 ----------
+
+    @Test
+    fun `满盘无五连判和棋`() {
+        fillBoardExceptLastCorner()
+        val result = engine.applyRemoteMove(14, 14, patternSide(14, 14))
+
+        assertEquals(listOf(GameEvent.Draw), result.events)
+        assertTrue(result.state.over)
+        assertTrue(result.state.drawn)
+        assertNull(result.state.winner)
+        assertEquals(225, result.state.moves.size)
+        // active 停留在最后一手方，与五连终局的观感一致
+        assertEquals(patternSide(14, 14), result.state.active)
+    }
+
+    @Test
+    fun `最后一手成五优先于满盘`() {
+        // 5×1 棋盘：最后一手既落满棋盘又成五连，必须判胜而非和棋
+        val small = GameEngine(5, 1)
+        small.start(GameMode.LOCAL_TWO)
+        repeat(4) { x -> small.applyRemoteMove(x, 0, Side.BLACK) }
+        val result = small.applyRemoteMove(4, 0, Side.BLACK)
+
+        assertEquals(Side.BLACK, gameOverWinner(result))
+        assertFalse(result.state.drawn)
+        assertEquals(5, result.state.moves.size)
+    }
+
+    @Test
+    fun `和棋后落子被拒`() {
+        fillBoardExceptLastCorner()
+        engine.applyRemoteMove(14, 14, patternSide(14, 14))
+
+        val result = engine.applyRemoteMove(0, 0, Side.BLACK)
+
+        val illegal = result.events.filterIsInstance<GameEvent.IllegalMove>().first()
+        assertEquals(GameEvent.IllegalMove.Reason.GAME_OVER, illegal.reason)
+    }
+
+    @Test
+    fun `悔棋解除和棋`() {
+        fillBoardExceptLastCorner()
+        engine.applyRemoteMove(14, 14, patternSide(14, 14))
+        assertTrue(engine.snapshot().drawn)
+
+        val result = engine.rollback()
+
+        assertFalse(result.state.over)
+        assertFalse(result.state.drawn)
+        assertNull(result.state.winner)
+        assertEquals(224, result.state.moves.size)
+    }
+
+    @Test
+    fun `和棋后超时判负被忽略`() {
+        fillBoardExceptLastCorner()
+        engine.applyRemoteMove(14, 14, patternSide(14, 14))
+
+        val result = engine.declareTimeout(Side.BLACK)
+
+        assertTrue(result.events.isEmpty())
+        assertNull(result.state.winner)
+        assertTrue(result.state.drawn)
+    }
+
+    /**
+     * 铺满除 (14,14) 外的 224 子
+     *
+     * 图案 `((x + 2y) mod 5) < 2` 在横/竖/两斜四个方向上的最长连子都不足五（分别为 2/2/2/3），
+     * 因此过程中不会提前五连终局；若图案失效，用例会因收到 GameOver 而非 Draw 明确失败。
+     */
+    private fun fillBoardExceptLastCorner() {
+        for (x in 0 until 15) {
+            for (y in 0 until 15) {
+                if (x == 14 && y == 14) continue
+                engine.applyRemoteMove(x, y, patternSide(x, y))
+            }
+        }
+    }
+
+    private fun patternSide(x: Int, y: Int): Side =
+        if ((x + 2 * y) % 5 < 2) Side.WHITE else Side.BLACK
 }

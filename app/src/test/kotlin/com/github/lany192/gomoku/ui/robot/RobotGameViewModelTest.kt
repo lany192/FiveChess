@@ -7,6 +7,7 @@ import com.github.lany192.gomoku.domain.ai.AiEnginePool
 import com.github.lany192.gomoku.domain.ai.Difficulty
 import com.github.lany192.gomoku.domain.ai.GameOutcome
 import com.github.lany192.gomoku.domain.ai.GomokuAI
+import com.github.lany192.gomoku.domain.engine.GameEngine
 import com.github.lany192.gomoku.domain.model.Point
 import com.github.lany192.gomoku.domain.model.Side
 import kotlinx.coroutines.Dispatchers
@@ -176,6 +177,58 @@ class RobotGameViewModelTest {
         // 悔棋不再触发终局回调，胜负回到进行中
         assertEquals(1, engine.gameOvers)
         assertNull(vm.state.value.winner)
+    }
+
+    // ---------- 满盘和棋 ----------
+
+    @Test(timeout = 10_000)
+    fun `满盘和棋不加胜场且闭合学习轨迹`() = runTest(dispatcher) {
+        val factory = FakeFactory()
+        // 3×1 棋盘：人(黑) 落 (0,0)/(2,0)，AI(白) 填 (1,0)，最后一手由人落满
+        val vm = RobotGameViewModel(
+            engine = GameEngine(3, 1),
+            enginePool = factory.pool,
+            levelStore = FakeLevelStore(),
+            algorithmStore = FakeAlgorithmStore(),
+            aiDispatcher = Dispatchers.Default,
+        )
+
+        vm.dispatch(RobotGameIntent.BoardTap(0, 0))
+        awaitTrue { vm.state.value.board.cells[1][0] == Side.WHITE }
+        vm.dispatch(RobotGameIntent.BoardTap(2, 0))
+
+        awaitTrue { factory[AiAlgorithm.DEFAULT].gameOvers == 1 }
+        assertTrue(vm.state.value.drawn)
+        assertNull(vm.state.value.winner)
+        assertEquals(0, vm.state.value.blackWins)
+        assertEquals(0, vm.state.value.whiteWins)
+        val outcome = factory[AiAlgorithm.DEFAULT].lastOutcome
+        assertNull("和棋的 winner 必须是 null", outcome?.winner)
+        assertEquals(3, outcome?.moves?.size)
+    }
+
+    @Test(timeout = 10_000)
+    fun `AI落最后一手同样判和棋`() = runTest(dispatcher) {
+        val factory = FakeFactory()
+        // 2×1 棋盘：人落 (0,0)，AI 填 (1,0) 即铺满 —— AI 可能是落最后一手的一方
+        val vm = RobotGameViewModel(
+            engine = GameEngine(2, 1),
+            enginePool = factory.pool,
+            levelStore = FakeLevelStore(),
+            algorithmStore = FakeAlgorithmStore(),
+            aiDispatcher = Dispatchers.Default,
+        )
+
+        vm.dispatch(RobotGameIntent.BoardTap(0, 0))
+        awaitTrue { vm.state.value.drawn }
+
+        assertNull(vm.state.value.winner)
+        assertEquals(0, vm.state.value.blackWins)
+        assertEquals(0, vm.state.value.whiteWins)
+        awaitTrue { factory[AiAlgorithm.DEFAULT].gameOvers == 1 }
+        val outcome = factory[AiAlgorithm.DEFAULT].lastOutcome
+        assertNull(outcome?.winner)
+        assertEquals(2, outcome?.moves?.size)
     }
 
     /** 轮询等待：每次先把测试调度器排空（Intent 与主线程回调都在里面），再让出给真实线程 */

@@ -106,6 +106,8 @@ class GameEngine(val width: Int = 15, val height: Int = 15) {
         active = active,
         winner = winner,
         over = over,
+        // 终局且无胜方只可能是满盘和棋：超时判负必带胜方，故可安全派生
+        drawn = over && winner == null,
         mySide = mySide,
     )
 
@@ -131,13 +133,21 @@ class GameEngine(val width: Int = 15, val height: Int = 15) {
         val move = Move(x, y, side)
         moves.add(move)
         val line = winLineFrom(x, y, side)
-        return if (line != null) {
-            winner = side
-            over = true
-            EngineResult(snapshot(), listOf(GameEvent.GameOver(side, line)))
-        } else {
-            active = side.opposite
-            EngineResult(snapshot(), listOf(GameEvent.MoveApplied(move, active)))
+        return when {
+            line != null -> {
+                winner = side
+                over = true
+                EngineResult(snapshot(), listOf(GameEvent.GameOver(side, line)))
+            }
+            moves.size == width * height -> {
+                // 满盘无人五连即和棋；active 停留在最后一手方，与五连终局一致
+                over = true
+                EngineResult(snapshot(), listOf(GameEvent.Draw))
+            }
+            else -> {
+                active = side.opposite
+                EngineResult(snapshot(), listOf(GameEvent.MoveApplied(move, active)))
+            }
         }
     }
 

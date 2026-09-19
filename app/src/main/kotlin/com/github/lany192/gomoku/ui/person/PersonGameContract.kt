@@ -18,6 +18,8 @@ data class PersonGameState(
     val winner: Side? = null,
     /** 终局由超时判负产生，仅影响横幅文案 */
     val timedOut: Boolean = false,
+    /** 满盘和棋终局，仅影响横幅文案（胜方为 null，故需单列一位） */
+    val drawn: Boolean = false,
     /** 当前行棋方剩余毫秒；<= 0 表示不限时（倒计时关闭） */
     val remainingMillis: Long = 0,
 )

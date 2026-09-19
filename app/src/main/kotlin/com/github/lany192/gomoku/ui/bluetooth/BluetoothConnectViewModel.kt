@@ -1,11 +1,12 @@
 package com.github.lany192.gomoku.ui.bluetooth
 
 import androidx.lifecycle.viewModelScope
+import com.github.lany192.gomoku.R
 import com.github.lany192.gomoku.core.mvi.MviViewModel
 import com.github.lany192.gomoku.data.bt.BtDiscoveryManager
 import com.github.lany192.gomoku.data.net.ConnectionItem
 import com.github.lany192.gomoku.data.net.DiscoveryEvent
-import com.github.lany192.gomoku.ui.common.describe
+import com.github.lany192.gomoku.ui.common.messageRes
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
@@ -41,7 +42,7 @@ class BluetoothConnectViewModel(
                 // 清掉可能已离线的残留 peer，已配对设备由扫描重新播报
                 updateState { it.copy(peers = emptyList()) }
                 discovery.scan()
-                viewModelScope.launch { emitEffect(BtConnectEffect.ShowMessage(SCANNING_TEXT)) }
+                viewModelScope.launch { emitEffect(BtConnectEffect.ShowMessage(R.string.msg_scanning)) }
             }
             is BtConnectIntent.PeerClicked -> {
                 if (awaitingAgree || handshakeDialogShowing) return
@@ -54,7 +55,7 @@ class BluetoothConnectViewModel(
                     if (awaitingAgree && pendingAddress == intent.address) {
                         resetPending()
                         emitEffect(BtConnectEffect.DismissConnecting)
-                        emitEffect(BtConnectEffect.ShowMessage("对方无响应，请确认对方已进入蓝牙联机页面"))
+                        emitEffect(BtConnectEffect.ShowMessage(R.string.msg_bt_peer_no_response))
                     }
                 }
             }
@@ -103,7 +104,7 @@ class BluetoothConnectViewModel(
                 resetPending()
                 viewModelScope.launch {
                     emitEffect(BtConnectEffect.DismissConnecting)
-                    emitEffect(BtConnectEffect.ShowMessage("对方拒绝了你的请求"))
+                    emitEffect(BtConnectEffect.ShowMessage(R.string.msg_request_rejected))
                 }
             }
             // 蓝牙没有连接外的带外通道，不会收到聊天
@@ -115,7 +116,7 @@ class BluetoothConnectViewModel(
                     resetPending()
                     emitEffect(BtConnectEffect.DismissConnecting)
                 }
-                emitEffect(BtConnectEffect.ShowMessage(event.kind.describe()))
+                emitEffect(BtConnectEffect.ShowMessage(event.kind.messageRes()))
             }
         }
     }
@@ -147,7 +148,7 @@ class BluetoothConnectViewModel(
             resetPending()
             viewModelScope.launch {
                 emitEffect(BtConnectEffect.DismissConnecting)
-                emitEffect(BtConnectEffect.ShowMessage("对方已退出"))
+                emitEffect(BtConnectEffect.ShowMessage(R.string.msg_peer_exited))
             }
         }
         if (handshakeDialogShowing && incomingAddress == address) {
@@ -155,7 +156,7 @@ class BluetoothConnectViewModel(
             incomingAddress = null
             viewModelScope.launch {
                 emitEffect(BtConnectEffect.DismissHandshake)
-                emitEffect(BtConnectEffect.ShowMessage("对方已退出"))
+                emitEffect(BtConnectEffect.ShowMessage(R.string.msg_peer_exited))
             }
         }
     }
@@ -173,8 +174,6 @@ class BluetoothConnectViewModel(
     }
 
     private companion object {
-        const val SCANNING_TEXT = "扫描中，请稍后......"
-
         /** 蓝牙握手链路较长（connect + 用户裁决），超时给得比局域网宽 */
         const val AGREE_TIMEOUT_MS = 20_000L
     }

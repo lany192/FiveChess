@@ -166,7 +166,7 @@ class BluetoothConnectActivity : AppCompatActivity() {
                                 finish()
                             }
                             is BtConnectEffect.ShowMessage -> Toast.makeText(
-                                this@BluetoothConnectActivity, effect.text, Toast.LENGTH_LONG,
+                                this@BluetoothConnectActivity, effect.resId, Toast.LENGTH_LONG,
                             ).show()
                         }
                     }

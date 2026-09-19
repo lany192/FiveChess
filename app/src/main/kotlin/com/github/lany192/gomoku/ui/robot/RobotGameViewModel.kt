@@ -45,6 +45,7 @@ class RobotGameViewModel(
     private var whiteWins = 0
     private var winLine: List<Point> = emptyList()
     private var winner: Side? = null
+    private var drawn = false
     private var aiThinking = false
     private var pendingRollback = false
     private var pendingAlgorithm: AiAlgorithm? = null
@@ -155,20 +156,30 @@ class RobotGameViewModel(
                     winLine = event.line
                     board = board.copy(winLine = event.line)
                     winner = event.winner
+                    drawn = false
                     when (event.winner) {
                         Side.BLACK -> blackWins++
                         Side.WHITE -> whiteWins++
                     }
                     postGameOver(event.winner)
                 }
+                GameEvent.Draw -> {
+                    // 满盘和棋：双方均不加胜场；AI 可能是落最后一手的一方，学习轨迹同样要闭合
+                    winLine = emptyList()
+                    winner = null
+                    drawn = true
+                    postGameOver(null)
+                }
                 is GameEvent.RollbackApplied -> {
                     winLine = emptyList()
                     winner = null
+                    drawn = false
                     postGameReset()
                 }
                 GameEvent.Restarted -> {
                     winLine = emptyList()
                     winner = null
+                    drawn = false
                     postGameReset()
                 }
                 else -> Unit
@@ -181,6 +192,7 @@ class RobotGameViewModel(
                 blackWins = blackWins,
                 whiteWins = whiteWins,
                 winner = winner,
+                drawn = drawn,
             )
         }
     }

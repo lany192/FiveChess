@@ -63,10 +63,12 @@ class PersonGameActivity : AppCompatActivity() {
         binding.whiteWin.text = state.whiteWins.toString()
         renderCountdown(state.remainingMillis)
         val winner = state.winner
-        binding.resultBanner.visibility = if (winner != null) View.VISIBLE else View.GONE
-        if (winner != null) {
+        val showBanner = winner != null || state.drawn
+        binding.resultBanner.visibility = if (showBanner) View.VISIBLE else View.GONE
+        if (showBanner) {
             binding.resultText.setText(
                 when {
+                    state.drawn -> R.string.msg_draw_end
                     state.timedOut && winner == Side.BLACK -> R.string.msg_black_timeout
                     state.timedOut -> R.string.msg_white_timeout
                     winner == Side.BLACK -> R.string.msg_black_win

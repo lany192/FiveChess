@@ -28,6 +28,7 @@ class PersonGameViewModel(
     private var winLine: List<Point> = emptyList()
     private var winner: Side? = null
     private var timedOut = false
+    private var drawn = false
 
     // 必须在 init 之前声明：属性与 init 按声明顺序执行，init 会用到它
     private val turn = TurnCountdown(
@@ -60,6 +61,7 @@ class PersonGameViewModel(
                     board = board.copy(winLine = event.line)
                     winner = event.winner
                     timedOut = false
+                    drawn = false
                     when (event.winner) {
                         Side.BLACK -> blackWins++
                         Side.WHITE -> whiteWins++
@@ -70,22 +72,33 @@ class PersonGameViewModel(
                     winLine = emptyList()
                     winner = event.winner
                     timedOut = true
+                    drawn = false
                     when (event.winner) {
                         Side.BLACK -> blackWins++
                         Side.WHITE -> whiteWins++
                     }
                     turn.stop()
                 }
+                GameEvent.Draw -> {
+                    // 满盘和棋：双方均不加胜场，横幅走「双方和棋」
+                    winLine = emptyList()
+                    winner = null
+                    timedOut = false
+                    drawn = true
+                    turn.stop()
+                }
                 is GameEvent.RollbackApplied -> {
                     winLine = emptyList()
                     winner = null
                     timedOut = false
+                    drawn = false
                     turn.restart()
                 }
                 GameEvent.Restarted -> {
                     winLine = emptyList()
                     winner = null
                     timedOut = false
+                    drawn = false
                     turn.restart()
                 }
                 is GameEvent.MoveApplied -> turn.restart()
@@ -100,6 +113,7 @@ class PersonGameViewModel(
                 whiteWins = whiteWins,
                 winner = winner,
                 timedOut = timedOut,
+                drawn = drawn,
             )
         }
     }

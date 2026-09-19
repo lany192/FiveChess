@@ -22,6 +22,8 @@ data class RobotGameState(
     val aiAlgorithm: AiAlgorithm = AiAlgorithm.DEFAULT,
     /** 终局胜方，null 表示对局进行中（横幅随状态幂等渲染，不用弹窗） */
     val winner: Side? = null,
+    /** 满盘和棋终局，仅影响横幅文案（胜方为 null，故需单列一位） */
+    val drawn: Boolean = false,
 )
 
 sealed interface RobotGameEffect

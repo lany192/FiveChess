@@ -105,10 +105,15 @@ class RobotGameActivity : AppCompatActivity() {
             getString(levelNameRes(state.aiLevel)),
         )
         val winner = state.winner
-        binding.resultBanner.visibility = if (winner != null) View.VISIBLE else View.GONE
-        if (winner != null) {
+        val showBanner = winner != null || state.drawn
+        binding.resultBanner.visibility = if (showBanner) View.VISIBLE else View.GONE
+        if (showBanner) {
             binding.resultText.setText(
-                if (winner == Side.BLACK) R.string.msg_black_win else R.string.msg_white_win
+                when {
+                    state.drawn -> R.string.msg_draw_end
+                    winner == Side.BLACK -> R.string.msg_black_win
+                    else -> R.string.msg_white_win
+                }
             )
         }
     }

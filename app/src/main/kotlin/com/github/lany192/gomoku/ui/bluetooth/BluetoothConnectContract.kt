@@ -1,5 +1,6 @@
 package com.github.lany192.gomoku.ui.bluetooth
 
+import androidx.annotation.StringRes
 import com.github.lany192.gomoku.data.net.ConnectionItem
 
 sealed interface BtConnectIntent {
@@ -20,5 +21,6 @@ sealed interface BtConnectEffect {
     data class ShowConnecting(val address: String) : BtConnectEffect
     data object DismissConnecting : BtConnectEffect
     data class NavigateToGame(val isServer: Boolean, val address: String) : BtConnectEffect
-    data class ShowMessage(val text: String) : BtConnectEffect
+    /** 一次性提示，文案由资源层提供（ViewModel 无 Context） */
+    data class ShowMessage(@StringRes val resId: Int) : BtConnectEffect
 }

@@ -45,6 +45,18 @@ class LanGameClient(private val isServer: Boolean, private val remoteIp: String)
     @Volatile
     private var running = false
 
+    /** 心跳/假死检测：TCP 对端拔线或被杀时 read() 不报错，靠它兜底上报断线 */
+    private val heartbeat = HeartbeatMonitor(
+        scope = scope,
+        sendHeartbeat = { send(Protocol.encodeTcp(TcpType.HEARTBEAT)) },
+        onPeerDead = {
+            Log.d(TAG, "peer heartbeat timeout")
+            running = false
+            _events.tryEmit(NetEvent.Disconnected)
+            closeAll()
+        },
+    )
+
     /** 服务端监听 accept / 客户端重试建连（8 次 × 200ms） */
     override fun start() {
         if (running) return
@@ -54,6 +66,7 @@ class LanGameClient(private val isServer: Boolean, private val remoteIp: String)
 
     override fun stop() {
         running = false
+        heartbeat.stop()
         closeAll()
         scope.cancel()
     }
@@ -129,6 +142,7 @@ class LanGameClient(private val isServer: Boolean, private val remoteIp: String)
         socket = connected
         Log.d(TAG, "net connected")
         _events.tryEmit(NetEvent.Connected)
+        heartbeat.start()
         readLoop(connected)
     }
 
@@ -157,7 +171,10 @@ class LanGameClient(private val isServer: Boolean, private val remoteIp: String)
                 val n = input.read(buf)
                 if (n == -1) break
                 frameReader.feed(buf, n).forEach { frame ->
-                    when (frame.typeEnum()) {
+                    val type = frame.typeEnum()
+                    // 任何帧都是"对端还活着"的证据；心跳帧额外解锁假死判定
+                    if (type == TcpType.HEARTBEAT) heartbeat.onPeerHeartbeat() else heartbeat.onFrame()
+                    when (type) {
                         TcpType.ADD_CHESS -> {
                             if (frame.payload.size >= 2) {
                                 _events.tryEmit(NetEvent.ChessMove(frame.payload[0].toInt(), frame.payload[1].toInt()))
@@ -172,6 +189,7 @@ class LanGameClient(private val isServer: Boolean, private val remoteIp: String)
                         TcpType.DRAW_REJECT -> _events.tryEmit(NetEvent.DrawRejected)
                         TcpType.RESIGN -> _events.tryEmit(NetEvent.Resigned)
                         TcpType.TIMEOUT -> _events.tryEmit(NetEvent.TimedOut)
+                        // HEARTBEAT 已在上方消费，其余未知类型忽略（旧版兼容）
                         else -> Unit
                     }
                 }

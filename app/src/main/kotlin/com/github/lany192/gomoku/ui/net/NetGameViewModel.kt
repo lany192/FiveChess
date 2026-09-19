@@ -1,6 +1,7 @@
 package com.github.lany192.gomoku.ui.net
 
 import androidx.lifecycle.viewModelScope
+import com.github.lany192.gomoku.R
 import com.github.lany192.gomoku.core.mvi.MviViewModel
 import com.github.lany192.gomoku.data.net.GameTransport
 import com.github.lany192.gomoku.data.net.NetEvent
@@ -87,6 +88,7 @@ class NetGameViewModel(
             }
             NetGameIntent.RollbackClicked -> {
                 if (!connected || declaredOver || awaitingRollbackResponse || rollbackDialogShowing) return
+                if (engine.snapshot().over) return
                 val hasMyStone = engine.snapshot().moves.any { it.side == mySide }
                 if (!hasMyStone) return
                 awaitingRollbackResponse = true
@@ -94,8 +96,12 @@ class NetGameViewModel(
             }
             NetGameIntent.RollbackAgreed -> {
                 rollbackDialogShowing = false
-                // 对话框开着时对端可能已超时/认输终局，此时不能因"同意悔棋"把终局复活
-                if (declaredOver || engine.snapshot().over) return
+                // 对话框开着时对端可能已超时/认输/五连终局，此时不能因"同意悔棋"把终局复活；
+                // 且必须回 REJECT，否则请求方会永久停在等待态、此后无法落子
+                if (declaredOver || engine.snapshot().over) {
+                    transport.rejectRollback()
+                    return
+                }
                 transport.agreeRollback()
                 applyRollback(mySide.opposite)
             }
@@ -108,7 +114,7 @@ class NetGameViewModel(
                 if (engine.snapshot().over) return
                 awaitingDrawResponse = true
                 transport.askDraw()
-                viewModelScope.launch { emitEffect(NetGameEffect.ShowMessage("已发送求和请求")) }
+                viewModelScope.launch { emitEffect(NetGameEffect.ShowMessage(R.string.msg_draw_request_sent)) }
             }
             NetGameIntent.DrawAgreed -> {
                 drawDialogShowing = false
@@ -169,7 +175,7 @@ class NetGameViewModel(
                 turn.stop()
                 viewModelScope.launch {
                     emitEffect(NetGameEffect.DismissConnecting)
-                    emitEffect(NetGameEffect.ShowMessage("建立连接失败,请重试"))
+                    emitEffect(NetGameEffect.ShowMessage(R.string.msg_connect_retry_failed))
                     emitEffect(NetGameEffect.Exit)
                 }
             }
@@ -177,7 +183,7 @@ class NetGameViewModel(
                 turn.stop()
                 viewModelScope.launch {
                     emitEffect(NetGameEffect.DismissConnecting)
-                    emitEffect(NetGameEffect.ShowMessage("对方已断开连接"))
+                    emitEffect(NetGameEffect.ShowMessage(R.string.msg_peer_disconnected))
                     emitEffect(NetGameEffect.Exit)
                 }
             }
@@ -186,27 +192,33 @@ class NetGameViewModel(
                 consume(engine.applyRemoteMove(event.x, event.y, mySide.opposite))
             }
             NetEvent.RollbackAsked -> {
-                if (declaredOver) {
+                // 终局期间的悔棋请求一律回 REJECT（五连也在此列），避免请求方永久悬挂
+                if (declaredOver || engine.snapshot().over) {
                     transport.rejectRollback()
                     return
                 }
-                if (rollbackDialogShowing || awaitingRollbackResponse) return
+                // 本端正等待他人回应/弹窗挂着：同样回 REJECT，静默丢包会让请求方永久卡死
+                if (rollbackDialogShowing || awaitingRollbackResponse) {
+                    transport.rejectRollback()
+                    return
+                }
                 rollbackDialogShowing = true
                 viewModelScope.launch { emitEffect(NetGameEffect.ShowRollbackRequest) }
             }
             NetEvent.RollbackAgreed -> {
+                // 对端已按同一份落子历史回退，本方必须跟随；即使本方刚终局也不能回绝，否则两端棋盘失步
                 awaitingRollbackResponse = false
-                viewModelScope.launch { emitEffect(NetGameEffect.ShowMessage("对方同意悔棋")) }
+                viewModelScope.launch { emitEffect(NetGameEffect.ShowMessage(R.string.msg_rollback_agreed)) }
                 applyRollback(mySide)
             }
             NetEvent.RollbackRejected -> {
                 awaitingRollbackResponse = false
-                viewModelScope.launch { emitEffect(NetGameEffect.ShowMessage("对方拒绝了你的请求")) }
+                viewModelScope.launch { emitEffect(NetGameEffect.ShowMessage(R.string.msg_request_rejected)) }
             }
             NetEvent.RestartRequested -> {
                 resetRoundFlags()
                 consume(engine.restart())
-                viewModelScope.launch { emitEffect(NetGameEffect.ShowMessage("对方已重新开始")) }
+                viewModelScope.launch { emitEffect(NetGameEffect.ShowMessage(R.string.msg_peer_restarted)) }
             }
             NetEvent.DrawAsked -> {
                 if (declaredOver || engine.snapshot().over) {
@@ -214,7 +226,11 @@ class NetGameViewModel(
                     transport.rejectDraw()
                     return
                 }
-                if (drawDialogShowing || awaitingDrawResponse) return
+                if (drawDialogShowing || awaitingDrawResponse) {
+                    // 同理：忙时也回 REJECT，不能让请求方空等
+                    transport.rejectDraw()
+                    return
+                }
                 drawDialogShowing = true
                 viewModelScope.launch { emitEffect(NetGameEffect.ShowDrawRequest) }
             }
@@ -225,7 +241,7 @@ class NetGameViewModel(
             }
             NetEvent.DrawRejected -> {
                 awaitingDrawResponse = false
-                viewModelScope.launch { emitEffect(NetGameEffect.ShowMessage("对方拒绝求和")) }
+                viewModelScope.launch { emitEffect(NetGameEffect.ShowMessage(R.string.msg_draw_rejected)) }
             }
             NetEvent.Resigned -> {
                 if (declaredOver || engine.snapshot().over) return
@@ -294,11 +310,21 @@ class NetGameViewModel(
                 is GameEvent.GameOver -> {
                     winLine = event.line
                     board = board.copy(winLine = event.line)
+                    // 五连也是终局：置位后协商请求不再受理（此前漏置导致终局后仍能发起悔棋）
+                    declaredOver = true
                     end = NetGameEnd.Win(event.winner)
                     when (event.winner) {
                         Side.BLACK -> blackWins++
                         Side.WHITE -> whiteWins++
                     }
+                    clearPendingNegotiation()
+                    turn.stop()
+                }
+                GameEvent.Draw -> {
+                    // 满盘和棋：第 225 手照常收发 ADD_CHESS，两端各自从同一份历史本地推导，无需新消息类型
+                    winLine = emptyList()
+                    declaredOver = true
+                    end = NetGameEnd.Draw
                     clearPendingNegotiation()
                     turn.stop()
                 }
@@ -316,11 +342,14 @@ class NetGameViewModel(
                 is GameEvent.RollbackApplied -> {
                     winLine = emptyList()
                     end = null
+                    // 悔棋解除终局（含满盘和棋）后必须复位，否则棋局被自身标志锁死
+                    declaredOver = false
                     if (connected) turn.restart()
                 }
                 GameEvent.Restarted -> {
                     winLine = emptyList()
                     end = null
+                    declaredOver = false
                     if (connected) turn.restart()
                 }
                 // 非法落子（越界/占用/非本方回合）刻意不重置倒计时，否则可乱点续命

@@ -266,4 +266,51 @@ class ProtocolTest {
         // 双端必须是同一个 UUID 才能互相发现；改动即破坏蓝牙互通
         assertEquals("00001101-0000-1000-8000-00805F9B34FB", Protocol.BT_UUID)
     }
+
+    // ---------- 心跳（新增消息类型） ----------
+
+    @Test
+    fun `心跳字节值冻结`() {
+        assertEquals(11.toByte(), TcpType.HEARTBEAT.b)
+        assertArrayEquals(byteArrayOf(2, 0x0B), Protocol.encodeTcp(TcpType.HEARTBEAT))
+    }
+
+    @Test
+    fun `心跳与落子粘包解析`() {
+        val reader = Protocol.TcpFrameReader()
+        val frames = reader.feed(
+            Protocol.encodeTcp(TcpType.ADD_CHESS, byteArrayOf(7, 8)) + Protocol.encodeTcp(TcpType.HEARTBEAT)
+        )
+        assertEquals(2, frames.size)
+        assertEquals(TcpType.ADD_CHESS, frames[0].typeEnum())
+        assertEquals(TcpType.HEARTBEAT, frames[1].typeEnum())
+    }
+
+    // ---------- 聊天超长截断 ----------
+
+    @Test
+    fun `聊天超长按UTF8边界截断`() {
+        // 汉字 3 字节：255 字节刚好容纳 85 个，其余必须丢弃而非抛异常
+        assertEquals("好".repeat(85), Protocol.clampUtf8("好".repeat(100)))
+        // 恰好不超长时原样返回
+        assertEquals("好".repeat(85), Protocol.clampUtf8("好".repeat(85)))
+        assertEquals("hi", Protocol.clampUtf8("hi"))
+    }
+
+    @Test
+    fun `截断点落在多字节字符中间时整体退让`() {
+        // 1 + 85×3 = 256 字节：第 255 字节落在最后一个汉字的续字节上，必须整体丢弃该字
+        val clamped = Protocol.clampUtf8("a" + "好".repeat(85))
+        assertEquals("a" + "好".repeat(84), clamped)
+        assertTrue(clamped.toByteArray(Charsets.UTF_8).size <= 255)
+    }
+
+    @Test
+    fun `截断后长度字段可编码`() {
+        // 能走通编码即证明长度字段合法（chatLen 只有 1 字节，超限会抛 ProtocolException）
+        val clamped = Protocol.clampUtf8("啊".repeat(300))
+        val encoded = Protocol.encodeChat("me", "1.2.3.4", clamped)
+        val payload = Protocol.decodeChatBody(encoded.copyOfRange(1, encoded.size))
+        assertEquals(clamped, payload.content)
+    }
 }

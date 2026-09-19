@@ -5,6 +5,7 @@ import android.bluetooth.BluetoothServerSocket
 import android.bluetooth.BluetoothSocket
 import android.util.Log
 import com.github.lany192.gomoku.data.net.GameTransport
+import com.github.lany192.gomoku.data.net.HeartbeatMonitor
 import com.github.lany192.gomoku.data.net.NetEvent
 import com.github.lany192.gomoku.data.net.Protocol
 import com.github.lany192.gomoku.data.net.TcpType
@@ -56,6 +57,18 @@ class BtGameClient(
     @Volatile
     private var running = false
 
+    /** 心跳/假死检测：对端蓝牙掉出范围时 read() 可能长时间不报错，靠它兜底上报断线 */
+    private val heartbeat = HeartbeatMonitor(
+        scope = scope,
+        sendHeartbeat = { send(Protocol.encodeTcp(TcpType.HEARTBEAT)) },
+        onPeerDead = {
+            Log.d(TAG, "peer heartbeat timeout")
+            running = false
+            _events.tryEmit(NetEvent.Disconnected)
+            closeAll()
+        },
+    )
+
     override fun start() {
         if (running) return
         running = true
@@ -64,6 +77,7 @@ class BtGameClient(
 
     override fun stop() {
         running = false
+        heartbeat.stop()
         closeAll()
         scope.cancel()
     }
@@ -134,6 +148,7 @@ class BtGameClient(
         socket = connected
         Log.d(TAG, "bt connected")
         _events.tryEmit(NetEvent.Connected)
+        heartbeat.start()
         readLoop(connected)
     }
 
@@ -206,7 +221,10 @@ class BtGameClient(
                 val n = input.read(buf)
                 if (n == -1) break
                 frameReader.feed(buf, n).forEach { frame ->
-                    when (frame.typeEnum()) {
+                    val type = frame.typeEnum()
+                    // 任何帧都是"对端还活着"的证据；心跳帧额外解锁假死判定
+                    if (type == TcpType.HEARTBEAT) heartbeat.onPeerHeartbeat() else heartbeat.onFrame()
+                    when (type) {
                         TcpType.ADD_CHESS -> {
                             if (frame.payload.size >= 2) {
                                 _events.tryEmit(NetEvent.ChessMove(frame.payload[0].toInt(), frame.payload[1].toInt()))
@@ -221,6 +239,7 @@ class BtGameClient(
                         TcpType.DRAW_REJECT -> _events.tryEmit(NetEvent.DrawRejected)
                         TcpType.RESIGN -> _events.tryEmit(NetEvent.Resigned)
                         TcpType.TIMEOUT -> _events.tryEmit(NetEvent.TimedOut)
+                        // HEARTBEAT 已在上方消费，其余未知类型忽略（旧版兼容）
                         else -> Unit
                     }
                 }

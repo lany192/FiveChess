@@ -36,6 +36,14 @@ enum class TcpType(val b: Byte) {
      * 即本功能要求两端同版本。
      */
     TIMEOUT(10),
+
+    /**
+     * 新增：传输层心跳（无 payload），仅在建立对局连接后周期性发送
+     *
+     * 用于对端探测本方假死（拔网线/杀进程）。旧版收到未知字节会忽略，互通安全；
+     * 检测方也只在本方收到过对端心跳后才启用判死，避免与旧版对局时误报断线。
+     */
+    HEARTBEAT(11),
 }
 
 /**
@@ -79,6 +87,8 @@ data class ChatContent(
     val connector: String,
     val content: String,
     val time: Long = System.currentTimeMillis(),
+    /** 仅本地展示用：true 表示本机发出的消息（不参与协议编解码） */
+    val self: Boolean = false,
 )
 
 /** 聊天消息解析结果 */
@@ -199,6 +209,20 @@ object Protocol {
         val ip = String(readSegment(body, ipLenPos + 1, ipLen), Charsets.UTF_8)
         val chat = String(readSegment(body, chatLenPos + 1, chatLen), Charsets.UTF_8)
         return ChatPayload(ConnectionItem(name, ip), chat)
+    }
+
+    /**
+     * 按 UTF-8 边界截断超长文本
+     *
+     * 聊天长度字段只有 1 字节，超 255 字节会被 [utf8] 拒绝抛异常；用户输入不可控，
+     * 故在发送前截断。从截断点向前退避续字节（10xxxxxx），保证不劈开多字节字符。
+     */
+    fun clampUtf8(value: String, maxBytes: Int = 255): String {
+        val bytes = value.toByteArray(Charsets.UTF_8)
+        if (bytes.size <= maxBytes) return value
+        var end = maxBytes
+        while (end > 0 && (bytes[end].toInt() and 0xC0) == 0x80) end--
+        return String(bytes, 0, end, Charsets.UTF_8)
     }
 
     // ---------- TCP 帧（[len][type][payload]） ----------
