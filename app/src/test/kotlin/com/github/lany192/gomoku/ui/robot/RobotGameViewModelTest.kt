@@ -146,6 +146,35 @@ class RobotGameViewModelTest {
     }
 
     @Test(timeout = 10_000)
+    fun `思考中重开后过期的AI着法不得落到新棋局`() = runTest(dispatcher) {
+        val gate = CountDownLatch(1)
+        val engine = EchoEngine(gate)
+        val vm = RobotGameViewModel(
+            enginePool = AiEnginePool(width = 15, height = 15, factory = { _, _, _ -> engine }),
+            levelStore = FakeLevelStore(),
+            algorithmStore = FakeAlgorithmStore(),
+            aiDispatcher = Dispatchers.Default,
+        )
+
+        // 人类落 (7,7) → AI 按这份棋盘开始思考（卡在闸门上）
+        vm.dispatch(RobotGameIntent.BoardTap(7, 7))
+        awaitTrue { engine.calls == 1 }
+
+        // 思考中重开，随后又落一子：此时轮到白方，但 AI 还在思考，新的调度被吞掉
+        vm.dispatch(RobotGameIntent.RestartClicked)
+        vm.dispatch(RobotGameIntent.BoardTap(7, 8))
+        advanceUntilIdle()
+        assertEquals(Side.WHITE, vm.state.value.active)
+
+        gate.countDown()
+
+        // 过期着法是按 (7,7) 算出的 (8,7)；正确行为是丢弃后按新棋盘重算，落在 (8,8)
+        awaitTrue { vm.state.value.board.cells[8][8] == Side.WHITE }
+        assertNull("过期着法落到了新棋局上", vm.state.value.board.cells[8][7])
+        assertEquals("判废后应在新棋盘上补一次搜索", 2, engine.calls)
+    }
+
+    @Test(timeout = 10_000)
     fun `终局与悔棋的学习钩子各触发一次`() = runTest(dispatcher) {
         val factory = FakeFactory()
         val vm = RobotGameViewModel(
@@ -299,6 +328,34 @@ class RobotGameViewModelTest {
         override fun onGameReset() {
             resets++
         }
+    }
+
+    /**
+     * 按"传进来的棋盘"回着法的假引擎：取最后一颗棋子的右邻点。
+     * 棋盘内容不同则着法不同，据此可判断 AI 用的是新棋盘还是作废的旧棋盘。
+     */
+    private class EchoEngine(private val gate: CountDownLatch? = null) : GomokuAI {
+
+        @Volatile
+        override var level: Difficulty = Difficulty.MEDIUM
+
+        @Volatile
+        var calls = 0
+
+        override fun getPosition(board: Array<IntArray>): Point {
+            calls++
+            gate?.await()
+            for (x in board.indices.reversed()) {
+                for (y in board[x].indices.reversed()) {
+                    if (board[x][y] != 0) return Point(x + 1, y)
+                }
+            }
+            return Point(0, 0)
+        }
+
+        override fun onGameOver(outcome: GameOutcome) {}
+
+        override fun onGameReset() {}
     }
 
     /** 记录工厂调用与实例：同一算法复用同一实例，断言才追得上 */

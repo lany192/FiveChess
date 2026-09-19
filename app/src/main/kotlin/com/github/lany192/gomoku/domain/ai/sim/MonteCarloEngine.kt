@@ -24,6 +24,12 @@ private class McNode(val move: Int, val toMove: Int) {
 }
 
 /**
+ * 一次搜索的结构统计。仅供测试观测"树是否逐层展开"：只给根节点填候选时，
+ * [treeNodes] 恒为根候选数 + 1，与模拟次数无关（历史缺陷）。
+ */
+data class SearchStats(val simulations: Int, val treeNodes: Int, val rollouts: Int)
+
+/**
  * 蒙特卡洛家族：MCTS（平铺模拟）/ UCT（启发式 rollout）/ RAVE（AMAF 加速）。
  *
  * 胜率口径统一为"造出这个节点的着法方"：每个子节点记的 wins 是**走出该子着法的一方**
@@ -36,6 +42,8 @@ class MonteCarloEngine(
     level: Difficulty,
     random: Random,
     clock: () -> Long = System::nanoTime,
+    /** 搜索结束回报结构统计，生产不传（仅测试用来守护树的展开） */
+    private val onSearchDone: (SearchStats) -> Unit = {},
 ) : AbstractAiEngine(width, height, level, random, clock) {
 
     override fun algorithm(): AiAlgorithm = algorithm
@@ -65,15 +73,22 @@ class MonteCarloEngine(
         private val amafSeen = Array(3) { BooleanArray(width * height) }
         private var cellCount = 0
 
+        /** 树节点数（含根）与真实 rollout 次数，只用于 [SearchStats] */
+        private var treeNodes = 1
+        private var rollouts = 0
+
         init {
             root.untried.addAll(rootMoves)
         }
 
         fun run(): Point {
+            var simulated = 0
             for (sim in 0 until options.simulations) {
                 if (sim > 0 && sim % ABORT_CHECK_INTERVAL == 0 && aborted()) break
                 simulate()
+                simulated++
             }
+            onSearchDone(SearchStats(simulated, treeNodes, rollouts))
             var best = root.children.firstOrNull() ?: return Point(rootMoves[0] / height, rootMoves[0] % height)
             for (c in root.children) {
                 if (c.visits > best.visits) best = c
@@ -93,6 +108,8 @@ class MonteCarloEngine(
                     break
                 }
                 if (node.untried.isNotEmpty()) {
+                    // 触底不再加深：余下步数交给 rollout，避免树随模拟次数无限长高
+                    if (path.size >= MAX_TREE_DEPTH) break
                     node = expand(node)
                     if (node.terminal) {
                         winner = Stone.opponent(node.toMove)
@@ -107,7 +124,10 @@ class MonteCarloEngine(
                 node = bestChild(node)
                 descend(node)
             }
-            if (rolloutNeeded) winner = rollout(node.toMove)
+            if (rolloutNeeded) {
+                rollouts++
+                winner = rollout(node.toMove)
+            }
             backprop(winner)
             undo()
         }
@@ -122,9 +142,27 @@ class MonteCarloEngine(
             amafSeen[parent.toMove][move] = true
             val child = McNode(move, Stone.opponent(parent.toMove))
             child.terminal = scanner.isFiveAt(board, x, y, parent.toMove)
+            if (!child.terminal) fillUntried(child)
+            treeNodes++
             parent.children.add(child)
             path.add(child)
             return child
+        }
+
+        /**
+         * 为新展开的节点补上候选着法。
+         *
+         * 树必须逐层可展开：只给根节点填候选时，根候选用尽后每次模拟都会走到「子节点无着法可走」
+         * 而判和，声明的模拟次数与 rollout 深度全部空转（历史缺陷）。
+         */
+        private fun fillUntried(node: McNode) {
+            val moves = generator.generate(
+                board, options.rootBreadth, options.radius, node.toMove, Stone.opponent(node.toMove),
+            )
+            for (c in moves) {
+                // generate 在无候选时兜底返回中心点，该点已占时必须丢弃，否则会重复落子
+                if (board[c.x][c.y] == Stone.EMPTY) node.untried.add(c.x * height + c.y)
+            }
         }
 
         /** 沿已选子节点下走一步 */

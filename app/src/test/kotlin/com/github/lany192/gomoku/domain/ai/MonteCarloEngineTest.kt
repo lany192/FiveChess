@@ -1,5 +1,7 @@
 package com.github.lany192.gomoku.domain.ai
 
+import com.github.lany192.gomoku.domain.ai.sim.MonteCarloEngine
+import com.github.lany192.gomoku.domain.ai.sim.SearchStats
 import com.github.lany192.gomoku.domain.model.Point
 import org.junit.Assert.assertArrayEquals
 import org.junit.Assert.assertEquals
@@ -10,6 +12,11 @@ import kotlin.random.Random
 class MonteCarloEngineTest {
 
     private val presets = listOf(AiAlgorithm.MCTS, AiAlgorithm.UCT, AiAlgorithm.RAVE)
+
+    private companion object {
+        /** 只展开根节点时树的上限：中等档 rootBreadth = 12，加根节点本身 */
+        const val ROOT_ONLY_NODES = 13
+    }
 
     /** clock 固定为 0：关掉时间预算，由模拟次数收口，保证结果可复现 */
     private fun engine(algorithm: AiAlgorithm, level: Difficulty = Difficulty.MEDIUM): GomokuAI =
@@ -76,6 +83,31 @@ class MonteCarloEngineTest {
             val elapsedMs = (System.nanoTime() - start) / 1_000_000
             assertTrue("$algorithm 落点不合法 ($point)", board[point.x][point.y] == 0)
             assertTrue("$algorithm 耗时 ${elapsedMs}ms 超出预期", elapsedMs < 4_000)
+        }
+    }
+
+    @Test
+    fun `随机模拟的树逐层展开而不是只在根上选一次`() {
+        val board = AiTestBoards.midGame()
+        for (algorithm in presets) {
+            var stats: SearchStats? = null
+            val engine = MonteCarloEngine(
+                algorithm = algorithm,
+                width = 15,
+                height = 15,
+                level = Difficulty.MEDIUM,
+                random = Random(11),
+                clock = { 0L },
+                onSearchDone = { stats = it },
+            )
+            engine.getPosition(board)
+            val search = requireNotNull(stats) { "$algorithm 未回报搜索统计" }
+            // 只给根节点填候选时，树节点恒为"根候选数 + 1"（中等档 12 + 1），模拟次数再多也不长
+            assertTrue(
+                "$algorithm 树节点仅 ${search.treeNodes} 个，说明只展开了根节点",
+                search.treeNodes > ROOT_ONLY_NODES,
+            )
+            assertTrue("$algorithm 一次 rollout 都没跑", search.rollouts > 0)
         }
     }
 

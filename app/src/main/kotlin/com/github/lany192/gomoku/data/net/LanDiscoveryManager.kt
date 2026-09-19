@@ -76,14 +76,19 @@ class LanDiscoveryManager(private val localIp: String) {
         launchIo { sendMulticast(Protocol.encodeBroadcast(BroadcastType.JOIN, fullDeviceName(), localIp)) }
     }
 
-    /** 广播下线 */
+    /**
+     * 广播下线。
+     *
+     * 刻意走独立线程而非 [scope]：调用方（[stop] 之前的 onCleared）紧接着就会取消 scope，
+     * 排在同一条协程队列上的发送会被取消抢先、一个字节都发不出去，对端只能等 10 秒超时。
+     * 用临时 socket 发送也与 stop() 关闭自持 socket 的时序无关。
+     */
     fun sendExitBroadcast() {
-        // 旧实现用临时 socket 发送，避免与 stop() 的关闭时序竞争，这里保持一致
-        launchIo {
+        val data = Protocol.encodeBroadcast(BroadcastType.EXIT, fullDeviceName(), localIp)
+        Thread({
             try {
                 MulticastSocket().use { socket ->
                     socket.timeToLive = 1
-                    val data = Protocol.encodeBroadcast(BroadcastType.EXIT, fullDeviceName(), localIp)
                     val packet = DatagramPacket(data, data.size)
                     packet.address = InetAddress.getByName(Protocol.MULTICAST_IP)
                     packet.port = Protocol.MULTICAST_PORT
@@ -92,7 +97,7 @@ class LanDiscoveryManager(private val localIp: String) {
             } catch (e: IOException) {
                 Log.d(TAG, "send exit multicast fail: ${e.message}")
             }
-        }
+        }, EXIT_THREAD_NAME).start()
     }
 
     /** 请求与对方联机 */
@@ -266,5 +271,6 @@ class LanDiscoveryManager(private val localIp: String) {
         const val TAG = "LanDiscovery"
         const val BUFFER_SIZE = 1024
         const val RECEIVE_ERROR_DELAY_MS = 200L
+        const val EXIT_THREAD_NAME = "lan-exit-broadcast"
     }
 }

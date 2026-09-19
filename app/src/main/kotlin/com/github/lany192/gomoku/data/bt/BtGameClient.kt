@@ -1,5 +1,6 @@
 package com.github.lany192.gomoku.data.bt
 
+import android.annotation.SuppressLint
 import android.bluetooth.BluetoothAdapter
 import android.bluetooth.BluetoothServerSocket
 import android.bluetooth.BluetoothSocket
@@ -32,6 +33,8 @@ import java.util.UUID
  *
  * 线程模型同局域网版：阻塞 IO 协程，靠关闭 socket 打断 accept()/read()。
  */
+// 权限由联机页在创建本类之前确保，connectLoop 亦已兜底 SecurityException
+@SuppressLint("MissingPermission")
 class BtGameClient(
     private val adapter: BluetoothAdapter?,
     private val isServer: Boolean,

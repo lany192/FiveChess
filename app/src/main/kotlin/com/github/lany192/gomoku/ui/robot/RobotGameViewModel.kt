@@ -48,6 +48,14 @@ class RobotGameViewModel(
     private var drawn = false
     private var aiThinking = false
     private var pendingRollback = false
+
+    /**
+     * 棋局代数：重开/悔棋后自增。
+     *
+     * 搜索是异步的，结果回来时棋盘可能已经被重开或回退过；只校验"当前是否轮到白方"挡不住这种情况
+     * （重开后落一手就又轮到白方），所以用代数把按旧棋盘算出的着法判废。
+     */
+    private var generation = 0
     private var pendingAlgorithm: AiAlgorithm? = null
     private var aiLevel: Difficulty = levelStore?.read() ?: Difficulty.MEDIUM
     private var aiAlgorithm: AiAlgorithm = algorithmStore?.read() ?: AiAlgorithm.DEFAULT
@@ -74,12 +82,14 @@ class RobotGameViewModel(
             }
             RobotGameIntent.RestartClicked -> {
                 pendingRollback = false
+                generation++
                 consume(engine.restart())
             }
             RobotGameIntent.RollbackClicked -> {
                 if (aiThinking) {
                     pendingRollback = true
                 } else {
+                    generation++
                     consume(engine.rollback(ROLLBACK_STEPS))
                 }
             }
@@ -120,6 +130,7 @@ class RobotGameViewModel(
         val instance = ai
         // 棋盘在主线程取好：AI 计算期间主线程可能重开/悔棋，引擎快照不能跨线程读
         val board = aiMap()
+        val token = generation
         viewModelScope.launch(aiDispatcher) {
             val point = instance.getPosition(board)
             withContext(Dispatchers.Main.immediate) {
@@ -128,13 +139,17 @@ class RobotGameViewModel(
                     pendingAlgorithm = null
                     selectAlgorithm(it)
                 }
-                if (isAiTurn()) {
+                val stale = token != generation
+                if (!stale && isAiTurn()) {
                     consume(engine.applyRemoteMove(point.x, point.y, AI_SIDE))
                 }
                 if (pendingRollback) {
                     pendingRollback = false
+                    generation++
                     consume(engine.rollback(ROLLBACK_STEPS))
                 }
+                // 着法判废后本回合还没人走子，补一次调度，否则棋局会停在这里
+                if (stale && isAiTurn()) scheduleAiMove()
             }
         }
     }

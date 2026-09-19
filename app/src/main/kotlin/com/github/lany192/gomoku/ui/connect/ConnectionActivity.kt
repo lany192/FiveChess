@@ -74,9 +74,13 @@ class ConnectionActivity : AppCompatActivity() {
                             ConnectEffect.DismissHandshake -> handshakeDialog?.dismiss()
                             is ConnectEffect.ShowConnecting -> showConnectingDialog(effect.ip)
                             ConnectEffect.DismissConnecting -> waitDialog?.dismiss()
-                            is ConnectEffect.NavigateToGame -> NetGameActivity.startLan(
-                                this@ConnectionActivity, effect.isServer, effect.ip,
-                            )
+                            is ConnectEffect.NavigateToGame -> {
+                                NetGameActivity.startLan(
+                                    this@ConnectionActivity, effect.isServer, effect.ip,
+                                )
+                                // 出栈：ViewModel 随页面销毁停掉发现循环并发 EXIT，返回键从对局页直接回首页
+                                finish()
+                            }
                             is ConnectEffect.ShowMessage -> Toast.makeText(
                                 this@ConnectionActivity, effect.resId, Toast.LENGTH_LONG,
                             ).show()
